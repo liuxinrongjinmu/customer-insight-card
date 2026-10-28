@@ -1,0 +1,21 @@
+# 密钥与本地配置
+.env
+.env.local
+
+# 运行时状态：演示库由种子重新灌，不入库
+demo/cache/*.db
+demo/cache/*.db-wal
+demo/cache/*.db-shm
+demo/cache/corrections.jsonl
+
+# 静态原型的构建产物（python3 demo/build_demo.py 随时重生成）
+demo/客户认知卡-原型.html
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 系统
+.DS_Store

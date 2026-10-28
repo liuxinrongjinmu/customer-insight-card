@@ -1,0 +1,226 @@
+[
+  {
+    "name": "拜访纪要：多类型事实并存",
+    "document": {
+      "source_type": "visit_note",
+      "occurred_at": "2026-10-24",
+      "customer_id": "c_88213",
+      "text": "2026年10月24日拜访宏远制造，王建国副总（分管信息化）接待。王总说他们现有系统是2019年上的，现在每天要手工导三次数据，这个太折腾人了，我们希望明年一季度能彻底解决。问到预算，王总表示今年没预算了，得等明年三月集团经营会批，程序上必须走完，不然财务那边过不去。他提到我们报的价格比去年另一家供应商高了不少，你们这个报价比去年那家高了快三分之一。我们答应下周五前提供一份同行业客户的实施案例，另外承诺11月10日前给出详细实施方案。王总说最终要董事长签字，董事长比较看重合规和审计留痕。还提到他们也在接触一家做工业软件的厂商，但没说具体名字。"
+    },
+    "output": [
+      {
+        "fact_type": "need",
+        "subject_type": "account",
+        "subject_id": "c_88213",
+        "statement": "客户希望明年一季度彻底解决数据需每日手工导出三次的问题。",
+        "payload": {
+          "need_text": "消除每日三次手工导数据的现状，实现自动化",
+          "category": "integration",
+          "explicitness": "explicit",
+          "priority": "must",
+          "raised_by": null,
+          "scope": "信息化部门"
+        },
+        "polarity": "negative",
+        "magnitude": "high",
+        "source_span": "现在每天要手工导三次数据，这个太折腾人了，我们希望明年一季度能彻底解决",
+        "stated_at": "2026-10-24",
+        "stated_at_precision": "day",
+        "confidence_basis": "direct_quote",
+        "confidence": -1
+      },
+      {
+        "fact_type": "timeline",
+        "subject_type": "account",
+        "subject_id": "c_88213",
+        "statement": "客户预算需待明年三月集团经营会审批后才能落地。",
+        "payload": {
+          "event": "集团经营会审批年度预算",
+          "target_date": "2027-03-01",
+          "precision": "month",
+          "hardness": "hard",
+          "driver": "budget"
+        },
+        "polarity": "neutral",
+        "magnitude": "high",
+        "source_span": "今年没预算了，得等明年三月集团经营会批，程序上必须走完，不然财务那边过不去",
+        "stated_at": "2026-10-24",
+        "stated_at_precision": "day",
+        "confidence_basis": "paraphrase",
+        "confidence": -1
+      },
+      {
+        "fact_type": "concern",
+        "subject_type": "account",
+        "subject_id": "c_88213",
+        "statement": "客户认为我方报价比去年其他供应商高出约三分之一。",
+        "payload": {
+          "concern_text": "报价高于去年可比供应商，价差接近三分之一",
+          "verbatim_quote": "你们这个报价比去年那家高了快三分之一",
+          "category": "price",
+          "severity": "high",
+          "raised_by": null,
+          "is_resolved": false,
+          "resolution_note": null
+        },
+        "polarity": "negative",
+        "magnitude": "high",
+        "source_span": "你们这个报价比去年那家高了快三分之一",
+        "stated_at": "2026-10-24",
+        "stated_at_precision": "day",
+        "confidence_basis": "direct_quote",
+        "confidence": -1
+      },
+      {
+        "fact_type": "commitment",
+        "subject_type": "account",
+        "subject_id": "c_88213",
+        "statement": "我方承诺下周五前提供同行业客户的实施案例。",
+        "payload": {
+          "commitment_text": "提供同行业客户实施案例",
+          "direction": "we_owe",
+          "owner_id": null,
+          "due_date": "2026-10-30",
+          "due_precision": "day",
+          "fulfillment": "pending",
+          "fulfilled_at": null,
+          "evidence_fact_id": null
+        },
+        "polarity": "neutral",
+        "magnitude": "medium",
+        "source_span": "我们答应下周五前提供一份同行业客户的实施案例",
+        "stated_at": "2026-10-24",
+        "stated_at_precision": "day",
+        "confidence_basis": "direct_quote",
+        "confidence": -1
+      },
+      {
+        "fact_type": "commitment",
+        "subject_type": "account",
+        "subject_id": "c_88213",
+        "statement": "我方承诺11月10日前给出详细实施方案。",
+        "payload": {
+          "commitment_text": "给出详细实施方案",
+          "direction": "we_owe",
+          "owner_id": null,
+          "due_date": "2026-11-10",
+          "due_precision": "day",
+          "fulfillment": "pending",
+          "fulfilled_at": null,
+          "evidence_fact_id": null
+        },
+        "polarity": "neutral",
+        "magnitude": "medium",
+        "source_span": "另外承诺11月10日前给出详细实施方案",
+        "stated_at": "2026-10-24",
+        "stated_at_precision": "day",
+        "confidence_basis": "direct_quote",
+        "confidence": -1
+      },
+      {
+        "fact_type": "stakeholder",
+        "subject_type": "contact",
+        "subject_id": null,
+        "statement": "王建国副总分管信息化，是本次对接的主要接口人。",
+        "payload": {
+          "contact_id": null,
+          "name": "王建国",
+          "title": "副总",
+          "role_in_deal": "influencer",
+          "attitude": "neutral",
+          "influence": "high",
+          "reports_to": null,
+          "last_contacted_at": "2026-10-24"
+        },
+        "polarity": "neutral",
+        "magnitude": "medium",
+        "source_span": "王建国副总（分管信息化）接待",
+        "stated_at": "2026-10-24",
+        "stated_at_precision": "day",
+        "confidence_basis": "direct_quote",
+        "confidence": -1
+      },
+      {
+        "fact_type": "risk_signal",
+        "subject_type": "account",
+        "subject_id": null,
+        "statement": "客户同时在接触其他厂商，但未透露名称。",
+        "payload": {
+          "signal_type": "competitor_entry",
+          "baseline": "此前沟通中客户未提及其他供应商",
+          "observed": "客户承认在接触一家工业软件厂商，未告知名称",
+          "severity": "medium",
+          "detected_by": "model"
+        },
+        "polarity": "negative",
+        "magnitude": "medium",
+        "source_span": "他们也在接触一家做工业软件的厂商，但没说具体名字",
+        "stated_at": "2026-10-24",
+        "stated_at_precision": "day",
+        "confidence_basis": "paraphrase",
+        "confidence": -1
+      }
+    ]
+  },
+  {
+    "name": "邮件：时间约束与硬节点",
+    "document": {
+      "source_type": "email",
+      "occurred_at": "2026-10-20",
+      "customer_id": "c_55021",
+      "text": "主题：关于二期项目排期的确认。李经理，您好。按上次会议结论，二期项目需在12月31日前完成验收，这是集团年度考核的硬指标，无法延后。目前我方排期评估需要8周，若11月初启动可满足要求。另，贵司采购流程一般需要四周，建议尽早发起。张伟 2026年10月20日"
+    },
+    "output": [
+      {
+        "fact_type": "timeline",
+        "subject_type": "opportunity",
+        "subject_id": null,
+        "statement": "二期项目须在12月31日前完成验收，属集团年度考核硬指标。",
+        "payload": {
+          "event": "二期项目完成验收",
+          "target_date": "2026-12-31",
+          "precision": "day",
+          "hardness": "hard",
+          "driver": "compliance"
+        },
+        "polarity": "neutral",
+        "magnitude": "high",
+        "source_span": "二期项目需在12月31日前完成验收，这是集团年度考核的硬指标，无法延后",
+        "stated_at": "2026-10-20",
+        "stated_at_precision": "day",
+        "confidence_basis": "direct_quote",
+        "confidence": -1
+      },
+      {
+        "fact_type": "timeline",
+        "subject_type": "opportunity",
+        "subject_id": null,
+        "statement": "项目需在11月初启动，才能满足12月底验收的排期要求。",
+        "payload": {
+          "event": "二期项目启动",
+          "target_date": "2026-11-01",
+          "precision": "week",
+          "hardness": "soft",
+          "driver": "business"
+        },
+        "polarity": "neutral",
+        "magnitude": "medium",
+        "source_span": "若11月初启动可满足要求",
+        "stated_at": "2026-10-20",
+        "stated_at_precision": "day",
+        "confidence_basis": "paraphrase",
+        "confidence": -1
+      }
+    ]
+  },
+  {
+    "name": "即时通讯：信息不足时不产出",
+    "document": {
+      "source_type": "im_message",
+      "occurred_at": "2026-10-23",
+      "customer_id": "c_77190",
+      "text": "销售-陈：张工，上周说的那个事有消息吗。客户-张：还在走流程。销售-陈：大概还要多久。客户-张：不好说。销售-陈：行，那我下周再问您。"
+    },
+    "output": []
+  }
+]

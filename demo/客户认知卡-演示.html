@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>客户认知卡 · 本地演示</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --ink:#1a1d21; --muted:#5f6672; --line:#e3e6ea;
+  --accent:#1f6feb; --accent-soft:#eaf1fd;
+  --ok:#0f7b46; --ok-soft:#e8f5ee;
+  --warn:#9a5b00; --warn-soft:#fdf3e3;
+  --danger:#b42318; --danger-soft:#fdecea;
+  --grey:#6b7280; --grey-soft:#f1f2f4;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.04);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;
+}
+.app{display:grid;grid-template-columns:248px 1fr;height:calc(100vh - 30px);overflow:hidden}
+/* 顶部身份条：任何时候都要能一眼看出「这次是算的，还是放的」 */
+.demobar{height:30px;display:flex;align-items:center;gap:10px;padding:0 14px;
+  background:#2b2f36;color:#e8eaed;font-size:12px;letter-spacing:.2px}
+.demobar b{color:#ffd66b;font-weight:600}
+.demobar .grow{flex:1}
+.demobar span{color:#a8aeb8}
+.pill{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;letter-spacing:.2px}
+.pill.ok{background:rgba(15,123,70,.22);color:#7ee2a8}
+.pill.warn{background:rgba(154,91,0,.24);color:#ffcf7a}
+.pill.busy{background:rgba(31,111,235,.24);color:#9dc4ff}
+
+/* ---------- 侧栏 ---------- */
+.sidebar{background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+.brand b{font-size:15px;letter-spacing:.2px}
+.brand span{display:block;color:var(--muted);font-size:11.5px;margin-top:3px}
+.search{padding:12px 14px 6px}
+.search input{
+  width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  font-size:13px;background:#fbfbfc;color:var(--ink);outline:none
+}
+.search input:focus{border-color:var(--accent);background:#fff}
+.newbtn{
+  margin:6px 14px 8px;padding:8px 10px;width:calc(100% - 28px);
+  border:1px dashed var(--accent);background:var(--accent-soft);color:var(--accent);
+  border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit
+}
+.newbtn:hover{background:#dfeafd}
+.list{overflow:auto;padding:6px 8px 12px;flex:1;min-height:0}
+.item{padding:10px 10px;border-radius:8px;cursor:pointer;margin-bottom:2px}
+.item:hover{background:#f7f8fa}
+.item.on{background:var(--accent-soft)}
+.item .n{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.item .m{color:var(--muted);font-size:11.5px;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}
+.item .new{font-size:9.5px;padding:0 5px;border-radius:3px;background:var(--warn-soft);color:var(--warn);font-weight:700}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-top:6px}
+.foot{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+.foot button{border:0;background:none;color:var(--accent);cursor:pointer;font-size:11px;font-family:inherit;padding:0}
+.foot button:hover{text-decoration:underline}
+/* 服务端没开 /api/reset 时置灰（P2-3）。用 not-allowed 而不是隐藏：
+   藏起来会让人以为这个功能被删了，置灰才说得清「它在，但要先开」。 */
+.foot button.off{color:var(--muted);cursor:not-allowed}
+.foot button.off:hover{text-decoration:none}
+
+/* ---------- 主区 ---------- */
+main{overflow:auto;min-height:0;display:flex;flex-direction:column}
+.head{padding:20px 28px 14px;background:#fff;border-bottom:1px solid var(--line)}
+.head h1{margin:0;font-size:20px;letter-spacing:.3px}
+.head .meta{color:var(--muted);font-size:12.5px;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap}
+.verdict{
+  margin-top:12px;padding:10px 12px;background:var(--accent-soft);border-left:3px solid var(--accent);
+  border-radius:0 6px 6px 0;font-size:13px
+}
+.pendnote{
+  margin-top:8px;padding:8px 12px;background:#fff7e6;border-left:3px solid #e6a23c;
+  border-radius:0 6px 6px 0;font-size:12.5px;color:#8a5a00
+}
+.tabs{display:flex;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.tab{padding:11px 14px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.panel{padding:20px 28px 60px;flex:1}
+
+h2.sec{font-size:12px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin:26px 0 10px;font-weight:700}
+h2.sec:first-child{margin-top:4px}
+
+/* ---------- 抽取回执 ---------- */
+.receipt{
+  margin:0 28px;padding:11px 14px;border-radius:8px;font-size:12.5px;line-height:1.7;
+  background:var(--ok-soft);border:1px solid #bfe3cd;color:#14532d;display:none
+}
+.receipt.on{display:block}
+.receipt.warn{background:var(--warn-soft);border-color:#f0d9ae;color:#6b3f00}
+.receipt .rt{font-weight:700}
+.receipt .rs{color:var(--muted)}
+.receipt a{color:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
+.receipt .close{float:right;cursor:pointer;color:var(--muted);font-weight:700}
+
+/* ---------- 建议卡 ---------- */
+.actions{display:grid;gap:10px}
+.act{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  box-shadow:var(--shadow);display:grid;grid-template-columns:44px 1fr;gap:12px
+}
+.act .p{
+  font-size:11px;font-weight:700;letter-spacing:.5px;align-self:start;
+  padding:2px 0;text-align:center;border-radius:6px
+}
+.p0{color:var(--danger);background:var(--danger-soft)}
+.p1{color:var(--warn);background:var(--warn-soft)}
+.p2{color:var(--grey);background:var(--grey-soft)}
+.act .t{font-weight:600;font-size:14px}
+.act .w{color:var(--muted);font-size:12.5px;margin-top:3px}
+.act .o{font-size:11.5px;color:var(--accent);margin-top:5px}
+
+/* ---------- 事实卡 ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.fact{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden
+}
+.fact::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--grey)}
+.fact.t-need::before{background:#1f6feb}
+.fact.t-concern::before{background:#b42318}
+.fact.t-commitment::before{background:#7a5af8}
+.fact.t-stakeholder::before{background:#0f7b46}
+.fact.t-competition::before{background:#9a5b00}
+.fact.t-timeline::before{background:#0e7490}
+.fact.t-risk_signal::before{background:#c2410c}
+.fact.dim{opacity:.66}
+.fh{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px;background:var(--grey-soft);color:var(--muted)}
+.badge{font-size:10.5px;padding:1px 6px;border-radius:4px;font-weight:600;letter-spacing:.2px}
+.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-mid{background:var(--warn-soft);color:var(--warn)}
+.b-low{background:var(--grey-soft);color:var(--grey)}
+.b-exp{background:#eef0f2;color:#495057}
+.b-ovd{background:var(--danger-soft);color:var(--danger)}
+.b-cft{background:var(--danger-soft);color:var(--danger)}
+.b-new{background:#e7f0ff;color:#1f4fa8}
+.b-ret{background:#ececf1;color:#5b5f6b}
+.st{margin:2px 0 8px;font-size:13.5px;line-height:1.55}
+/* 已撤回：卡片留着，但要说清「这条不算数了」。
+   直接让它消失是最省事的做法，也是最糟的——用户点完按钮，
+   界面少了一张卡，看不出发生了什么，也没地方撤销。 */
+.fact.retracted{opacity:.5;border-style:dashed}
+.fact.retracted .st{text-decoration:line-through;text-decoration-color:rgba(180,35,24,.55)}
+blockquote{
+  margin:0 0 8px;padding:6px 10px;border-left:2px solid var(--line);
+  color:#404650;font-size:12.5px;background:#fafbfc;border-radius:0 4px 4px 0
+}
+.ff{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--muted);gap:6px}
+.ff .fa{display:flex;gap:6px;flex-shrink:0}
+.ff button{
+  border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:6px;
+  padding:2px 8px;font-size:11.5px;cursor:pointer;font-family:inherit
+}
+.ff button:hover{background:var(--accent-soft);border-color:var(--accent)}
+/* 「这条不对」刻意做成弱化样式：它是个纠错入口，不该比「看原文」更抢眼。 */
+.ff button.no{color:var(--muted);border-color:transparent;background:transparent;padding:2px 4px}
+.ff button.no:hover{color:var(--danger);background:var(--danger-soft);border-color:transparent}
+.fact.flash{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- 时间线 ---------- */
+.tl{position:relative;margin-left:6px;padding-left:22px;border-left:2px solid var(--line)}
+.tli{position:relative;margin-bottom:18px}
+.tli::before{
+  content:"";position:absolute;left:-29px;top:5px;width:9px;height:9px;border-radius:50%;
+  background:#fff;border:2px solid var(--accent)
+}
+.tli.past::before{border-color:var(--grey)}
+.tli .d{font-size:11.5px;color:var(--muted);letter-spacing:.3px}
+.tli .c{font-size:13.5px;margin-top:2px}
+.tli .r{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* ---------- 记录 ---------- */
+.rec{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.rec .rh{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:8px}
+.rec .rt{font-size:13.5px;line-height:1.75;white-space:pre-wrap}
+.rec .rf{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--grey-soft);color:var(--muted);cursor:pointer}
+.chip:hover{background:var(--accent-soft);color:var(--accent)}
+mark{background:#fff3b0;padding:0 1px;border-radius:2px}
+
+/* ---------- 抽屉 ---------- */
+.mask{position:fixed;inset:0;background:rgba(17,24,39,.28);opacity:0;pointer-events:none;transition:.18s;z-index:20}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:min(560px,92vw);background:#fff;z-index:21;
+  transform:translateX(102%);transition:transform .22s ease;display:flex;flex-direction:column;
+  box-shadow:-8px 0 24px rgba(16,24,40,.12)
+}
+.drawer.on{transform:none}
+.drawer.wide{width:min(720px,94vw)}
+.mask.on{opacity:1;pointer-events:auto}
+.dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start}
+.dh b{font-size:14px}
+.dh .x{border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--muted)}
+/* 抽屉头的动作区：复制按钮和关闭按钮并排，不能各自占满一行 */
+.dh .dhact{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.dh .cbtn{border:1px solid var(--line);background:#fff;color:var(--muted);
+  font:inherit;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.dh .cbtn:hover{color:var(--ink);border-color:#c9ccd4}
+.dh .cbtn.ok{color:var(--ok);border-color:#b6e0c6;background:var(--ok-soft)}
+.dh .cbtn.fail{color:var(--danger);border-color:#f3c2be;background:var(--danger-soft)}
+.db{padding:18px 20px;overflow:auto;flex:1}
+.kv{display:grid;grid-template-columns:78px 1fr;gap:4px 10px;font-size:12.5px;margin-bottom:14px}
+.kv .k{color:var(--muted)}
+.src{background:#fbfbfc;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:13.5px;line-height:1.85;white-space:pre-wrap}
+.hint{font-size:12px;color:var(--muted);margin-top:10px}
+.empty{color:var(--muted);font-size:13px;padding:16px;background:#fff;border:1px dashed var(--line);border-radius:10px}
+
+/* ---------- 基准日滑块 ---------- */
+.datebar{
+  margin-top:11px;padding:9px 12px;background:#fbfbfc;border:1px solid var(--line);
+  border-radius:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap
+}
+.datebar .dl{font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.2px;white-space:nowrap}
+.datebar input[type=range]{
+  flex:1;min-width:180px;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;
+  background:linear-gradient(90deg,var(--line),var(--accent));outline:none
+}
+.datebar input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;
+  border:2px solid var(--accent);cursor:pointer;box-shadow:var(--shadow)
+}
+.datebar input[type=date]{
+  width:auto;padding:4px 8px;font-size:12px;background:#fff;border-radius:6px
+}
+.datebar .dt{font-size:12px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums;min-width:96px}
+.datebar .dj{font-size:11.5px;color:var(--muted)}
+.datebar button{
+  border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;
+  padding:4px 9px;font-size:11.5px;cursor:pointer;font-family:inherit
+}
+.datebar button:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+
+/* ---------- 较基准日的变化 ---------- */
+.delta{
+  margin:10px 28px 0;padding:10px 14px;border-radius:8px;font-size:12.5px;line-height:1.75;
+  background:#eef4ff;border:1px solid #cddcfb;color:#17376b;display:none
+}
+.delta.on{display:block}
+.delta b{font-variant-numeric:tabular-nums}
+.delta .up{color:var(--danger);font-weight:700}
+.delta .down{color:var(--ok);font-weight:700}
+.delta .dlist{margin-top:4px;color:#2b4a7d}
+.delta .dlist span{display:inline-block;margin-right:10px}
+
+/* ---------- 裁决判据 ---------- */
+.judge{
+  display:none;margin-top:9px;padding:10px 12px;border-radius:8px;
+  background:#fbfbfc;border:1px dashed #cfd6e0;font-size:12px;line-height:1.7
+}
+.judge.on{display:block}
+.judge .jh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px}
+.judge .jh b{font-size:12.5px;color:#243b62}
+.judge .jh span{color:var(--muted);font-size:11.5px}
+.judge .jr{margin:0 0 6px;color:#374151}
+.judge .jm{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px}
+.judge .jm span{background:#eef0f4;border-radius:4px;padding:1px 6px}
+.judge .jo{margin-top:6px;color:#4b5563;font-size:11.5px;border-left:2px solid var(--line);padding-left:8px}
+.judge .jx{cursor:pointer;color:var(--accent);font-weight:600;font-size:11.5px}
+.b-cft{cursor:pointer}
+.b-cft:hover{outline:1px solid rgba(180,35,24,.35);outline-offset:1px}
+.b-exp{cursor:pointer}
+
+/* ---------- 记一笔（粘贴 / 草稿勾选） ---------- */
+.mask2{position:fixed;inset:0;background:rgba(17,24,39,.34);opacity:0;pointer-events:none;transition:.16s;z-index:30}
+.mask2.on{opacity:1;pointer-events:auto}
+.dialog{
+  position:fixed;z-index:31;left:50%;top:50%;transform:translate(-50%,-48%) scale(.98);
+  width:min(720px,94vw);max-height:88vh;background:#fff;border-radius:12px;
+  box-shadow:0 18px 48px rgba(16,24,40,.22);display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;transition:.16s
+}
+.dialog.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.dialog .dh{padding:16px 20px 12px}
+.dialog .dh b{font-size:15px}
+.dialog .dh .sub{display:block;color:var(--muted);font-size:11.5px;font-weight:400;margin-top:3px}
+.dialog .db{padding:6px 20px 0}
+.dialog .df{padding:14px 20px 18px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.dialog .df .grow{flex:1}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:4px;letter-spacing:.2px}
+.row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row2.two{grid-template-columns:1fr 1fr}
+select,input[type=date],input[type=text],textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  font-size:13px;font-family:inherit;color:var(--ink);background:#fbfbfc;outline:none
+}
+select:focus,input:focus,textarea:focus{border-color:var(--accent);background:#fff}
+textarea{min-height:170px;line-height:1.7;resize:vertical}
+.samples{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sample{
+  border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;
+  font-size:11.5px;cursor:pointer;font-family:inherit;text-align:left;color:var(--ink);max-width:210px
+}
+.sample:hover{border-color:var(--accent);background:var(--accent-soft)}
+.sample b{display:block;font-size:12px;margin-bottom:1px}
+.sample span{color:var(--muted);font-size:10.5px;line-height:1.4;display:block}
+
+/* ---------- 记一笔：草稿勾选 ---------- */
+/* 这一步要回答的问题是「这 6 条里哪几条真的成立」，所以一行只放三样东西：
+   类型、陈述、原文片段。字段全不全由校验层负责，摊开会让人不看就全选。 */
+.dsum{font-size:12.5px;margin:2px 0 9px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dsum .cnt{font-weight:600}
+.dsum .tip{color:var(--muted);font-size:11.5px}
+.dall{border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 8px;
+  font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted)}
+.dall:hover{border-color:var(--accent);color:var(--accent)}
+.dlist{max-height:44vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.drow{display:grid;grid-template-columns:16px 1fr;gap:10px;padding:9px 12px;
+  border-bottom:1px solid var(--line);cursor:pointer;align-items:start}
+.drow:last-child{border-bottom:none}
+.drow:hover{background:#fbfcfd}
+.drow.off .dt,.drow.off .dspan{text-decoration:line-through;opacity:.55}
+.drow input[type=checkbox]{margin:3px 0 0;cursor:pointer;accent-color:var(--accent)}
+.drow .dt{font-size:12.5px;line-height:1.65}
+.drow .dspan{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.6;
+  border-left:2px solid var(--line);padding-left:8px}
+.drow .dgist{font-size:11px;color:var(--muted);margin-top:5px}
+.tagt{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:5px;
+  background:var(--accent-soft);color:var(--accent);margin-right:6px}
+.tagrule{display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:5px;
+  background:#fff4e6;color:#b45309;margin-right:6px;vertical-align:1px}
+.dhint{font-size:11.5px;color:var(--muted);margin-top:9px;line-height:1.65}
+.empty2{padding:26px 6px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.9}
+.empty2 b{display:block;color:var(--ink);font-size:13px;margin-bottom:6px}
+.btn{
+  border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;
+  padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600
+}
+.btn:hover{background:#f7f8fa}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#1a5fd0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.progress{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.spin{width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:40;
+  background:#1f242b;color:#fff;padding:10px 16px;border-radius:8px;font-size:12.5px;
+  opacity:0;pointer-events:none;transition:.2s;max-width:80vw
+}
+.toast.on{opacity:1}
+.toast.bad{background:#7f1d1d}
+
+/* ---------- 档案条 / 决策链 / 待办 / 简报 ---------- */
+.strip{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;padding:10px 2px 0}
+.strip .m{min-width:96px}
+.strip .ml{font-size:11px;color:var(--muted);letter-spacing:.5px}
+.strip .mv{font-size:14px;font-weight:600;margin-top:2px}
+.strip .mh{font-size:11px;color:var(--muted);margin-top:1px}
+.strip .mnote{font-size:11.5px;color:var(--muted);line-height:1.6;max-width:680px}
+/* 推算出来的格子比主数据暗一档，并挂一个「推算」小标。
+   不加区分的话，「首次记录」会被当成「合作起始」读——那是一句没根据的话。 */
+.strip .m.derived .mv{color:var(--muted)}
+.strip .dmark{font-size:9.5px;font-weight:400;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 3px;margin-left:4px;letter-spacing:0}
+
+.chain{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin-bottom:8px}
+.chain .cn{border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#fff;min-width:132px}
+.chain .cn .nm{font-size:13px;font-weight:600}
+.chain .cn .ti{font-size:11.5px;color:var(--muted);margin-top:1px}
+.chain .cn .rl{font-size:11px;margin-top:4px;display:flex;gap:6px;align-items:center}
+.chain .cn.miss{border-style:dashed;background:#fffdf5}
+.chain .ar{color:var(--muted);padding:0 8px;font-size:12px}
+.tag-a{padding:1px 6px;border-radius:20px;font-size:10.5px}
+.tag-a.supportive{background:#e8f5e9;color:#1b5e20}
+.tag-a.resistant{background:#fdecea;color:#a1201a}
+.tag-a.unknown,.tag-a.neutral{background:#f2f3f5;color:#5b6572}
+.chain .note{font-size:12px;color:var(--muted);margin-top:4px}
+
+.navbtn{display:flex;align-items:center;justify-content:space-between;margin:6px 10px 8px;padding:9px 10px;
+  border-radius:8px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer}
+.navbtn.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.navbtn .n{font-size:11px;color:var(--muted)}
+.navbtn .n b{color:#b42318}
+
+.todo{display:flex;flex-direction:column;gap:8px}
+.todo .ti{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;cursor:pointer}
+.todo .ti:hover{border-color:var(--accent)}
+.todo .p{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:4px;flex:0 0 auto;margin-top:1px}
+.todo .p.p0{background:#fdecea;color:#a1201a}
+.todo .p.p1{background:#fff4e5;color:#8a5300}
+.todo .p.p2{background:#f2f3f5;color:#5b6572}
+.todo .k{font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+/* 金额：这一行值多少钱。放在 kind 右边、客户名左边——
+   待办这一屏没有档案条，用户就是靠这个数字决定先打哪个电话的。
+   只有知道金额时才画，不知道的时候不画「未定额」：
+   33 个存量客户都没有主数据，全都挂一个「未定额」等于给每一行加噪声。 */
+.todo .amt{font-size:11px;font-weight:600;color:#1f4f8a;background:#eef4fb;
+  border-radius:4px;padding:1px 6px;white-space:nowrap;flex:0 0 auto}
+.todo .t{font-size:13px;font-weight:600}
+.todo .w{font-size:12px;color:var(--muted);margin-top:2px}
+.todo .c{font-size:12px;color:var(--accent);margin-left:auto;white-space:nowrap}
+/* 存量客户那条待办：同一张表里，但要一眼看出「这不是我今天必须动的」。
+   不弱化的话，76 条存量待办会把 18 条重点待办淹掉。 */
+.todo .ti.poolitem{background:#fcfcfd;border-style:dashed}
+.todo .ti.poolitem .t{font-weight:500;color:#3d434d}
+
+/* ---------- 四入口：从动作开始，不从客户开始 ---------- */
+/* 原来的动线是「先选客户 → 再看产出物」。对「客户刚挂电话，说明天要方案」
+   这个场景是反的：用户心里有动作，没有客户名。这一条放在最上面，
+   是在说「这一屏可以从动作开始」。 */
+.intentbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;
+  padding:8px 10px;background:#f7f9fc;border:1px solid var(--line);border-radius:9px}
+.intentbar .il{font-size:11px;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.ichips{display:flex;gap:8px;flex-wrap:wrap}
+.ichip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 12px;
+  font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink);
+  display:inline-flex;align-items:center;gap:6px}
+.ichip:hover{border-color:var(--accent);color:var(--accent)}
+.ichip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.ichip .n{font-size:10.5px;font-weight:700;background:#eef4fb;color:#1f4f8a;
+  border-radius:99px;padding:0 6px;min-width:15px;text-align:center}
+.ichip.on .n{background:rgba(255,255,255,.26);color:#fff}
+.ichip .n.zero{background:#f2f3f5;color:#8b949f}
+.ipanel{display:none;margin:-6px 0 14px;border:1px solid var(--line);border-radius:10px;
+  background:#fff;box-shadow:0 8px 22px rgba(16,24,40,.08);overflow:hidden}
+.ipanel.on{display:block}
+.ipanel .ih{padding:9px 14px;border-bottom:1px solid var(--line);font-size:12px;
+  color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ipanel .ih b{color:var(--ink);font-size:12.5px}
+.ipick{display:flex;gap:10px;align-items:center;padding:10px 14px;
+  border-bottom:1px solid var(--line);cursor:pointer}
+.ipick:last-child{border-bottom:none}
+.ipick:hover{background:#f7f9fc}
+.ipick .ip-main{flex:1;min-width:0}
+.ipick .ip-t{font-size:13px;font-weight:600}
+.ipick .ip-w{font-size:11.5px;color:var(--muted);margin-top:2px}
+.ipick .ip-go{font-size:11.5px;color:var(--accent);white-space:nowrap;font-weight:600}
+.ipanel .if{padding:9px 14px;font-size:11.5px;color:var(--muted);background:#fbfcfd;line-height:1.6}
+
+/* 待办行上的「简报」深链：窄按钮，不抢「已办」的位置 */
+.dbtn.brief{padding:3px 7px;font-size:11px;color:#3d5a80;border-color:#cfdcea;background:#f7fafd}
+.dbtn.brief:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+
+/* 简报里的落点：从某条待办点进来时，要能看出「落在哪一块」。
+   只滚动不标记的话，长简报滚过去之后用户分不清是自动跳的还是自己滚的。 */
+.brief .blk.focus{background:#f7fbff;border-left:3px solid var(--accent);
+  margin-left:-10px;padding:2px 0 4px 10px;border-radius:0 6px 6px 0}
+.brief .blk.focus h3{color:var(--accent)}
+.brief .blocator{font-size:11.5px;color:var(--accent);margin-top:6px;font-weight:600}
+.brief .blocator a{color:var(--muted);font-weight:400;margin-left:8px;text-decoration:underline;
+  cursor:pointer}
+
+/* ---------- 客户分组（重点 / 存量） ---------- */
+.grp{
+  padding:12px 12px 5px;font-size:10.5px;letter-spacing:.7px;color:var(--muted);
+  font-weight:700;display:flex;justify-content:space-between;align-items:baseline
+}
+.grp .n{font-weight:600;letter-spacing:0;color:var(--grey)}
+.item.poolcust .n{font-weight:500;font-size:12.5px;color:#3f4650}
+.item.poolcust .m{font-size:11px}
+/* 筛子：今天先看谁的。默认停在「重点客户」——
+   39 个客户一起铺开，等于没有筛选。 */
+.seg{display:inline-flex;gap:4px;margin:0 0 12px}
+.seg button{
+  border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:16px;
+  padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit
+}
+.seg button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.seg button b{font-variant-numeric:tabular-nums}
+
+/* ---------- 已办 ---------- */
+/* 勾一下就能办完的，只有「我方欠的承诺」。其余那些（还没摸到决策人）不是一天能干完的事，
+   按钮文字要不一样，否则用户会以为点完公司就多了个决策人。 */
+.dbtn{
+  border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:6px;
+  padding:3px 9px;font-size:11.5px;cursor:pointer;font-family:inherit;white-space:nowrap;flex:0 0 auto
+}
+.dbtn:hover{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.todo .ti .dbtn{margin-top:1px}
+/* 「我不做」和「已办」必须长得不一样：一个是肯定，一个是否定。
+   同色同形的话，手滑点错的代价是「一件没做的事被记成做完了」。 */
+.dbtn.no:hover{color:var(--danger);border-color:#f3c2be;background:var(--danger-soft)}
+/* 原因就在这一行里选，不弹窗：一个三选一的动作不值得盖住整张表。 */
+.dbtn.rs{color:var(--ink);border-color:#c9ccd4}
+.dbtn.rs:hover{color:#8a5300;border-color:#e8c48d;background:var(--warn-soft)}
+.refuseask{font-size:11.5px;color:var(--warn);margin-top:1px;flex:0 0 auto;white-space:nowrap}
+/* 两区之间要能一眼分开：上半是他今天要打的电话，下半是系统缺的信息。 */
+.secnote{font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);font-size:12px}
+/* ---------- 历史欠账 ---------- */
+/* 逾期过 90 天的那一栏。用中性灰而不是红：红色会让它显得比今天该做的事还急，
+   而这一栏的意思恰恰相反——它不急，它是没人拍板。 */
+h2.sec.backlog{color:#8a6d3b}
+h2.sec.backlog .secnote{color:#a08a62}
+.todo .ti.backlogitem{background:#fdfcf9;border-style:dashed;border-color:#e6dfd0}
+.todo .ti.backlogitem .t{font-weight:500;color:#3d434d}
+/* 「给个说法」用问号而不是勾：这一栏里没有「做完了」这个选项。 */
+.dbtn.ask{color:#8a5300;border-color:#e8c48d;background:var(--warn-soft)}
+.dbtn.ask:hover{color:#6b3f00;border-color:#d9a961}
+.fillzone{margin-top:6px}
+.fillzone .ti{border-style:dashed;background:#fcfcfd}
+.fillzone .ti .t{font-weight:500;color:#3d434d}
+.donebar{
+  margin:10px 28px 0;padding:10px 14px;border-radius:8px;font-size:12.5px;line-height:1.75;
+  background:var(--ok-soft);border:1px solid #bfe3cd;color:#14532d
+}
+.donebar.soft{background:#f4f5f7;border-color:var(--line);color:#3d434d}
+.donebar b{font-weight:700}
+.donebar .x{float:right;cursor:pointer;color:var(--muted);font-weight:700;margin-left:10px}
+.donebar .undo{color:inherit;font-weight:600;text-decoration:underline;cursor:pointer;margin-left:6px}
+.donebar .dl{margin-top:4px;color:#2b4a3d}
+.donebar.soft .dl{color:var(--muted)}
+
+.brief .bhead{font-size:15px;font-weight:700}
+.brief .bsub{font-size:12px;color:var(--muted);margin-top:3px}
+.brief .blk{margin-top:18px}
+.brief .blk h3{font-size:12px;letter-spacing:1px;color:var(--muted);margin:0 0 7px;font-weight:700}
+.brief .it{font-size:13px;line-height:1.65;padding:6px 0;border-bottom:1px dashed var(--line)}
+.brief .it:last-child{border-bottom:none}
+.brief .it .mt{font-size:11.5px;color:var(--muted);margin-left:6px}
+.brief .it.bad .mt{color:#b42318}
+</style>
+</head>
+<body>
+<div class="demobar">
+  <b>本地演示</b>
+  <span id="mouth">正在连接服务端…</span>
+  <div class="grow"></div>
+  <span class="pill warn" id="pill">连接中</span>
+</div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><b>客户认知助手</b><span id="brandsub">演示版 v0.2</span></div>
+    <div class="search"><input id="q" placeholder="搜索客户名称…" autocomplete="off"></div>
+    <button class="newbtn" id="btnPaste">＋ 记一笔</button>
+    <div class="navbtn" id="navTodo"><span>今天要做的事</span><span class="n" id="todoBadge">—</span></div>
+    <div class="list" id="list"></div>
+    <div class="foot">
+      <span id="footinfo">加载中…</span><br>
+      <button id="btnReset">重置演示数据</button>
+    </div>
+  </aside>
+  <main>
+    <div class="head">
+      <div class="intentbar">
+        <span class="il">今天要做什么</span>
+        <div class="ichips" id="ichips"></div>
+      </div>
+      <div class="ipanel" id="ipanel"></div>
+      <h1 id="cname"></h1>
+      <div class="meta" id="cmeta"></div>
+      <div class="strip" id="strip"></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="datebar">
+        <span class="dl">基准日</span>
+        <input type="range" id="dtslider" min="0" max="0" value="0" step="1">
+        <input type="date" id="dtpicker">
+        <span class="dt" id="dtlabel"></span>
+        <button id="dtreset">回到 10-24</button>
+        <span class="dj" id="dtinfo"></span>
+        <span class="dacts">
+          <button id="btnVisit">拜访简报</button>
+          <button id="btnProposal">方案准备</button>
+          <button id="btnHandover">交接说明</button>
+        </span>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <div class="tab on" data-tab="card">认知卡</div>
+      <div class="tab" data-tab="timeline">时间线</div>
+      <div class="tab" data-tab="records">全部记录</div>
+    </nav>
+    <div class="delta" id="delta"></div>
+    <div class="receipt" id="receipt"></div>
+    <div id="donebar"></div>
+    <div class="panel" id="panel"></div>
+  </main>
+</div>
+
+<div class="mask" id="mask"></div>
+<div class="drawer" id="drawer">
+  <div class="dh"><b id="dtitle">原文</b><button class="x" id="dclose">×</button></div>
+  <div class="db" id="dbody"></div>
+</div>
+
+<div class="mask" id="bmask"></div>
+<div class="drawer wide" id="bdrawer">
+  <div class="dh"><b id="btitle">产出物</b>
+    <span class="dhact"><button class="cbtn" id="bcopy"
+      title="复制成 Markdown，直接粘进企微、邮件或交接文档">复制 Markdown</button>
+      <button class="x" id="bclose">×</button></span></div>
+  <div class="db brief" id="bbody"></div>
+</div>
+
+<div class="mask2" id="mask2"></div>
+<div class="dialog" id="dialog">
+  <div class="dh">
+    <b>记一笔<span class="sub" id="dsub">系统先从这段文本里抽事实，抽完给你看，勾了才入库。走的是和评测同一条管道。</span></b>
+    <button class="x" id="pclose">×</button>
+  </div>
+  <div class="db">
+    <div id="pform">
+      <div class="field">
+        <label>示例文本（都跑过一遍，抽得出来才留在这里）</label>
+        <div class="samples" id="samples"></div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>挂到哪个客户</label>
+          <select id="pcust"></select>
+        </div>
+        <div class="field" id="newnameWrap" style="display:none">
+          <label>新客户名称</label>
+          <input type="text" id="pnewname" placeholder="例如：中鼎精密">
+        </div>
+        <div class="field">
+          <label>记录日期</label>
+          <input type="date" id="pdate">
+        </div>
+      </div>
+      <div class="row2 two">
+        <div class="field">
+          <label>来源类型</label>
+          <select id="ptype"></select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end">
+          <div class="hint" style="margin:0 0 8px">日期决定「下周三」这类相对时间算成哪天。</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>记录原文</label>
+        <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
+          <button class="btn" style="font-size:12px" onclick="el('pfile').click()">📄 上传文档</button>
+          <input type="file" id="pfile" accept=".txt,.md,.csv,.docx" style="display:none" onchange="handleFileUpload(this)">
+          <span id="pfilename" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+        <textarea id="ptext" placeholder="把一段拜访纪要、通话记录、聊天记录粘进来。不需要整理格式，口语越原始越好。也可以上传 .txt / .md / .csv / .docx 文件。"></textarea>
+      </div>
+    </div>
+    <div id="pstep2" style="display:none">
+      <div class="dsum" id="dsum"></div>
+      <div class="dlist" id="dlist"></div>
+      <div class="dhint" id="dhint"></div>
+    </div>
+  </div>
+  <div class="df">
+    <div class="progress" id="pprog"></div>
+    <div class="grow"></div>
+    <button class="btn" id="pcancel">取消</button>
+    <button class="btn" id="pdiscard" style="display:none">整条丢弃</button>
+    <button class="btn" id="pback" style="display:none">← 改原文</button>
+    <button class="btn primary" id="psubmit">抽取看看</button>
+    <button class="btn primary" id="pcommit" style="display:none">确认入库</button>
+  </div>
+</div>
+
+<!-- 编辑档案弹窗 -->
+<div class="mask2" id="pmask"></div>
+<div class="dialog" id="pedit">
+  <div class="dh">
+    <b>编辑客户档案<span class="sub">改完立刻生效，改动会记入变更日志。不确定的留空比编一个好。</span></b>
+    <button class="x" id="peclose">×</button>
+  </div>
+  <div class="db" style="max-height:60vh;overflow-y:auto">
+    <!-- 最小档案：四格。空档案打开时只有这一块——对着十四格空表单，
+         人的实际反应是一项都不填，而「填了影响判断的四项」和「填完全部」
+         在这张卡上的收益差不了多少。 -->
+    <div id="pf_min">
+      <div class="row2 two">
+        <div class="field"><label>规模</label><input type="text" id="pf_scale" placeholder="如：3200 人 · 年产值 45 亿"></div>
+        <div class="field"><label>在办商机金额（万）</label><input type="text" id="pf_opp_amount" placeholder="数字，如 180"></div>
+      </div>
+      <div class="row2 two">
+        <div class="field"><label>合同到期</label><input type="text" id="pf_contract_exp" placeholder="如：2027-03-31"></div>
+        <div class="field"><label>关系温度</label>
+          <select id="pf_relationship">
+            <option value="">未评估</option>
+            <option value="warm">热——主动找我们</option>
+            <option value="neutral">正常——不冷不热</option>
+            <option value="cold">冷——最近有不满</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint" id="pf_minnote">这四项直接进档案条、直接参与排序——填了就有用。其余字段以后补，不用现在填。</div>
+    </div>
+    <div id="pf_rest">
+      <div class="row2">
+        <div class="field"><label>行业</label><input type="text" id="pf_industry"></div>
+        <div class="field"><label>阶段</label><input type="text" id="pf_stage" placeholder="如：POC 验证 / 商务谈判"></div>
+        <div class="field"><label>负责人</label><input type="text" id="pf_owner"></div>
+      </div>
+      <div class="row2 two">
+        <div class="field"><label>合作起始</label><input type="text" id="pf_since" placeholder="如：2019-04"></div>
+        <div class="field"><label>在办商机名称</label><input type="text" id="pf_opp_name"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>商机阶段</label><input type="text" id="pf_opp_stage"></div>
+        <div class="field"><label>合同 ARR（万）</label><input type="text" id="pf_contract_arr" placeholder="数字"></div>
+        <div class="field"><label>近 90 天客诉</label><input type="text" id="pf_tickets_n" placeholder="次数"></div>
+      </div>
+      <div class="row2 two">
+        <div class="field"><label>沟通偏好</label><input type="text" id="pf_comm_pref" placeholder="如：微信优先 / 邮件为主"></div>
+        <div class="field"><label>已购产品</label><input type="text" id="pf_products" placeholder="如：智能质检一期"></div>
+      </div>
+      <div class="field"><label>决策流程</label><input type="text" id="pf_decision_process" placeholder="如：部门提需求→技术评审→采购比价→总裁审批"></div>
+      <div class="field" id="pf_changelog_wrap" style="display:none">
+        <label>最近变更</label>
+        <div id="pf_changelog" style="font-size:12px;color:var(--muted);line-height:1.8"></div>
+      </div>
+    </div>
+  </div>
+  <div class="df">
+    <div class="progress" id="peprog"></div>
+    <div class="grow"></div>
+    <button class="btn" id="peexpand">展开全部字段</button>
+    <button class="btn" id="pecancel">取消</button>
+    <button class="btn primary" id="pesubmit">保存</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==========================================================================
+   状态
+   ========================================================================== */
+const S = {
+  as_of: null, today: null, type_cn: {}, source_cn: {},
+  customers: [], cur: null, tab: 'card',
+  // 页面级视图：customer = 某个客户的认知卡；todo = 跨客户的「今天要做的事」。
+  // 这两个是同级视图，不是 tab——tab 是「同一个客户的三种看法」。
+  view: 'customer', todo: null, brief: null, briefKind: 'visit',
+  // 已办：{mode, title, aid, view, todo, delta} —— 最近一次勾「已办」的回执。
+  doneRec: null,
+  // 正在问「为什么不做」的那条待办。同一时刻只问一条，
+  // 一屏上开着三个原因选择器，用户的第一个动作会变成关掉它们。
+  refuseAid: null,
+  // 归因询问展开在哪一条上。和 refuseAid 分开存：两者是不同的问题
+  // （「这条建议有问题」vs「这件事怎么收尾」），共用一位会在切换时互相吞掉。
+  attributeAid: null,
+  // 待办的筛子：focus = 重点客户，pool = 存量池，all = 全部。
+  // 默认停在 focus——39 个客户一起铺开，等于没有筛。
+  todoFilter: 'focus',
+  health: null, samples: [], busy: false, lastAdded: [], receipt: null,
+  // 四入口：/api/intent 的响应 + 当前展开的是哪个动作。
+  // intentOpen 存 id 而不是布尔，是因为同一时刻只该展开一个——
+  // 两个面板同时开着，第二个会把第一个挤到屏幕外。
+  intent: null, intentOpen: null,
+  // 简报的落点：从待办/意图入口点进来时记下块 id，用于高亮与「看全文」。
+  briefFocus: '',
+  // 记一笔的草稿：{draft_id, facts, n_facts, ...}。没点「确认入库」之前，
+  // 它只活在服务端内存里——库里一条都没有。picked 是勾上的 fact_id 集合。
+  draft: null, picked: null,
+  baseView: null, baseDate: null, seq: 0, pending: null,
+  // 一次纠错动作（撤回/撤销）的即时回执。与「较基准日变化」分开管：
+  // 拖滑块时基准日变了，动作回执该失效；但动作回执发生时基准日没变，
+  // 用 baseDate === today 判断就永远不显示。
+  actDelta: null
+};
+
+const el = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ==========================================================================
+   渲染（与原型一致，未改动三个 tab 的逻辑）
+   ========================================================================== */
+function tierBadge(f){
+  const map = {show:['b-ok','高置信'], confirm:['b-mid','待确认'], candidate:['b-low','候选']};
+  const [cls,label] = map[f.tier] || map.candidate;
+  return `<span class="badge ${cls}">${label} ${f.conf.toFixed(2)}</span>`;
+}
+
+function factCard(f){
+  const flags = [];
+  // 逾期 / 临近到期要带天数。只写「逾期」两个字，拖滑块时看不出变化；
+  // 写「逾期 1 天」→「逾期 8 天」，变化是自己跳出来的。
+  //
+  // 已被取代的事实不再挂倒计时：它上面的「逾期 43 天」是历史，不是现状。
+  // 两个标并排出现，观众会以为系统自相矛盾。
+  if (!f.superseded) {
+    if (f.overdue) flags.push(`<span class="badge b-ovd">承诺逾期 ${-f.due_in} 天</span>`);
+    else if (f.imminent) flags.push(`<span class="badge b-mid">${f.due_in} 天内到期</span>`);
+    // 8～30 天也给个灰标。只标 7 天内的话，从 8 天拖到 7 天之前卡片毫无变化，
+    // 观众看不到「在逼近」，只看到「突然冒出来」。
+    else if (f.due_in !== null && f.due_in !== undefined && f.due_in <= 30)
+      flags.push(`<span class="badge b-low">还有 ${f.due_in} 天</span>`);
+
+    if (f.date_passed) flags.push(`<span class="badge b-ovd">节点已过 ${-f.target_in} 天</span>`);
+    else if (f.target_in !== null && f.target_in !== undefined && f.target_in <= 7)
+      flags.push(`<span class="badge b-mid">${f.target_in} 天后</span>`);
+    else if (f.target_in !== null && f.target_in !== undefined && f.target_in <= 30)
+      flags.push(`<span class="badge b-low">还有 ${f.target_in} 天</span>`);
+  }  const judges = f.judgements || [];
+  const hasJudge = judges.length > 0;
+  if (f.expired) flags.push(`<span class="badge b-exp${hasJudge ? ' ' : ''}" ${hasJudge ? `onclick="toggleJudge('${f.key}')"` : ''}>已过保鲜期</span>`);
+  if (f.superseded) flags.push(`<span class="badge b-exp" onclick="toggleJudge('${f.key}')">已被新记录取代 · 看判据</span>`);
+  if (f.conflict) {
+    const t = f.conflict_with && f.conflict_with.length ? f.conflict_with[0] : '';
+    flags.push(`<span class="badge b-cft" onclick="toggleJudge('${f.key}')">与另一条冲突 · 看判据</span>`);
+    if (t) flags.push(`<span class="badge b-low" style="cursor:pointer" onclick="jump('${t}')">跳到那条</span>`);
+  }
+  if (f.no_quote) flags.push('<span class="badge b-mid">无原话·待确认</span>');
+  // 已履行 / 已豁免的承诺：这是勾「已办」之后能看到的证据——
+  // 状态真的变了，不是界面把那条建议藏起来了。
+  if (f.fact_type === 'commitment' && f.payload && f.payload.fulfillment === 'fulfilled')
+    flags.push('<span class="badge b-ok">已履行</span>');
+  if (f.fact_type === 'commitment' && f.payload && f.payload.fulfillment === 'waived')
+    flags.push('<span class="badge b-low">已豁免</span>');
+  if (S.lastAdded.includes(f.fid)) flags.push('<span class="badge b-new">本次新增</span>');
+  // 已撤回：给的是「撤销」而不是「这条不对」。两个按钮同时出现，
+  // 用户会以为系统在问他两次。
+  if (f.retracted) flags.push(`<span class="badge b-ret">已撤回 · 不计入结论</span>`);
+  const quote = f.fact_type === 'concern' && f.payload.verbatim_quote
+    ? `<blockquote>“${esc(f.payload.verbatim_quote)}”</blockquote>` : '';
+  const acts = [`<button onclick="openRec('${S.cur.id}','${f.rid}','${esc(f.span).replace(/'/g,'')}')">看原文</button>`];
+  if (f.retracted) acts.push(`<button onclick="retract('${f.key}', true)">撤销撤回</button>`);
+  else if (f.can_retract) acts.push(`<button class="no" onclick="retract('${f.key}')" title="这条抽错了：不计入结论，可撤销">这条不对</button>`);
+  return `<article class="fact t-${f.fact_type} ${f.expired ? 'dim' : ''} ${f.retracted ? 'retracted' : ''}" id="${f.key}">
+    <div class="fh">
+      <span class="tag">${f.type_cn}</span>${tierBadge(f)}
+      <span class="tag">依据：${f.basis_cn}</span>${flags.join('')}
+    </div>
+    <p class="st">${esc(f.statement)}</p>
+    ${quote}
+    ${judgeBlock(f)}
+    <div class="ff">
+      <span>${f.source_cn} · ${f.source_date}</span>
+      <span class="fa">${acts.join('')}</span>
+    </div>
+  </article>`;
+}
+
+function judgeBlock(f){
+  const js = f.judgements || [];
+  if (!js.length) return '';
+  const items = js.map((j, i) => {
+    const bits = [];
+    if (j.record_gap_days !== null && j.record_gap_days !== undefined)
+      bits.push(`两条记录相隔 ${j.record_gap_days} 天`);
+    if (j.value_gap_days !== null && j.value_gap_days !== undefined && j.field !== '_statement')
+      bits.push(`取值相差 ${j.value_gap_days} 天`);
+    bits.push(`判定可信度 ${j.confidence.toFixed(2)}`);
+    return `<div class="judge" id="${f.key}-j${i}">
+      <div class="jh"><b>${esc(j.verdict_cn)}</b>
+        <span>字段：${esc(j.field_cn)}　${esc(String(j.from_value))} → ${esc(String(j.to_value))}</span></div>
+      <p class="jr">${esc(j.rule)}</p>
+      <div class="jm">${bits.map(b => `<span>${esc(b)}</span>`).join('')}</div>
+      <div class="jo">本条：${f.source_date}　|　另一条：${j.other_date || '—'}${j.other_statement ? '<br>「' + esc(j.other_statement) + '」' : ''}
+        ${j.other_key ? `　<span class="jx" onclick="jump('${j.other_key}')">跳到那条事实 →</span>` : ''}</div>
+    </div>`;
+  }).join('');
+  return items;
+}
+
+function toggleJudge(key){
+  const n = document.getElementById(key + '-j0');
+  if (!n) return;
+  const on = n.classList.contains('on');
+  document.querySelectorAll(`[id^="${key}-j"]`).forEach(x => x.classList.toggle('on', !on));
+  if (!on) n.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function renderCard(c){
+  const order = ['need','concern','commitment','timeline','competition','stakeholder','risk_signal'];
+  let html = '<h2 class="sec">现在最该做的事</h2><div class="actions">';
+  if (!c.actions.length) html += '<div class="empty">没有待办。这个客户暂时不需要动作——信息不足时，不编比编强。</div>';
+  for (const a of c.actions){
+    html += `<div class="act">
+      <div class="p ${a.p.toLowerCase()}">${a.p}</div>
+      <div><div class="t">${esc(a.title)}</div><div class="w">${esc(a.why)}</div>
+      ${a.next_step ? `<div class="w" style="margin-top:4px;color:var(--accent);font-weight:600">→ ${esc(a.next_step)}</div>` : ''}
+      <div class="o">负责人：${esc(a.owner)}${a.basis ? `　·　<a href="#" onclick="jump('${a.basis}');return false" style="color:inherit">跳到依据事实</a>` : ''}</div>
+      <div style="margin-top:7px">${doneBtn({cid: c.id, aid: a.aid, can_fulfill: a.can_fulfill})}</div></div>
+    </div>`;
+  }
+  html += '</div>';
+
+  // 决策链放在建议之后、事实之前：建议说的是「做什么」，链说的是「找谁」。
+  // 放在建议正下方，是因为下一条动作往往是「去找谁」。
+  html += chainSection(c);
+
+  for (const t of order){
+    const fs = c.facts.filter(f => f.fact_type === t);
+    if (!fs.length) continue;
+    html += `<h2 class="sec">${S.type_cn[t] || t} · ${fs.length}</h2><div class="grid">` + fs.map(factCard).join('') + '</div>';
+  }
+  if (c.gaps && c.gaps.length){
+    html += `<h2 class="sec">还不知道的</h2><div class="empty">${c.gaps.map(esc).join('　·　')}</div>`;
+  }
+  return html;
+}
+
+function renderTimeline(c){
+  const items = [];
+  for (const f of c.facts){
+    const d = f.fact_type === 'timeline' ? f.payload.target_date : f.source_date;
+    items.push({d, f});
+  }
+  items.sort((a,b) => a.d < b.d ? -1 : 1);
+  let html = '<h2 class="sec">按时间看这个客户</h2><div class="tl">';
+  for (const it of items){
+    const past = it.d < S.today;
+    const label = it.f.fact_type === 'timeline' ? '计划节点' : '事实发生';
+    html += `<div class="tli ${past ? 'past' : ''}">
+      <div class="d">${it.d} · ${label}${past ? ' · 已过去' : ' · 未来'}</div>
+      <div class="c">${esc(it.f.statement)}</div>
+      <div class="r">${it.f.type_cn} · 来源 ${it.f.source_cn}（${it.f.source_date}）· 置信度 ${it.f.conf.toFixed(2)}</div>
+    </div>`;
+  }
+  html += `</div><div class="hint">说明：时间线按「事件时间」排（基准日 ${S.today}）；补录的记录不会因入库晚而挤到后面。</div>`;
+  return html;
+}
+
+function renderRecords(c){
+  let html = '<h2 class="sec">全部原始记录 · ' + c.records.length + '</h2>';
+  if (c.n_pending_records) {
+    html += `<div class="hint" style="margin:-4px 0 12px">另有 ${c.n_pending_records} 条记录写在 ${S.today} 之后，${S.today} 这天还看不到。</div>`;
+  }
+  for (const r of c.records){
+    const fs = c.facts.filter(f => f.rid === r.id);
+    // 0 条的时候不能只写「抽出 0 条事实」——用户只会读成「系统漏读了」。
+    // 服务端会给出原因（太短 / 模型判定没事实 / 被校验拒收），照它说。
+    const zero = (!fs.length && r.empty_hint)
+      ? `<div class="hint" style="margin:6px 0 0">${esc(r.empty_hint)}</div>` : '';
+    html += `<div class="rec">
+      <div class="rh"><span>${r.type_cn} · ${r.date}</span><span>${fs.length ? `抽出 ${fs.length} 条事实` : '抽出 0 条事实'}</span></div>
+      <div class="rt">${esc(r.text)}</div>
+      ${zero}
+      <div class="rf">${fs.map(f => `<span class="chip" onclick="openRec('${c.id}','${r.id}','${esc(f.span).replace(/'/g,'')}')">${f.type_cn}</span>`).join('')}</div>
+    </div>`;
+  }
+  return html;
+}
+
+
+/* ==========================================================================
+   档案条 / 决策链 / 今天要做的事 / 拜访简报 · 交接说明
+   ==========================================================================
+   这四块都不新增判断，只把服务端已经算好的东西换个组织方式：
+   档案条回答「是谁、值多少」，决策链回答「找谁」，待办回答「先干哪个」，
+   简报和交接回答「这一趟怎么谈」。所有结论都带依据，点得到原文。
+*/
+function renderStrip(c){
+  const rows = c.strip || [];
+  // 有主数据 = 至少一格来自档案。全是推算的话，按钮该说「补 4 个字段」而不是
+  // 「编辑档案」——后者会让人以为点进去有一堆东西要填，于是不点。
+  const hasProfile = rows.some(m => m.src !== 'derived');
+  const btn = hasProfile
+    ? `<div class="m" style="min-width:auto"><button class="btn" style="font-size:12px;padding:4px 10px" onclick="openPedit()">✏️ 编辑档案</button></div>`
+    : `<div class="m" style="min-width:auto"><button class="btn primary" style="font-size:12px;padding:4px 10px" onclick="openPedit(true)">＋ 补 4 个字段</button></div>`;
+  if (!rows.length){
+    // 一个格都不画，但也不能留一行空白：说清楚为什么空、下一步做什么。
+    return `<div class="mnote">这个客户还没有任何记录，也没有档案——${c.pool
+      ? '先把第一次沟通记下来，或者手工补四个字段。'
+      : '先记一笔，或者补四个字段。'}</div>` + btn;
+  }
+  const one = m => `<div class="m${m.src === 'derived' ? ' derived' : ''}">
+      <div class="ml">${esc(m.label)}${m.src === 'derived' ? '<span class="dmark">推算</span>' : ''}</div>
+      <div class="mv">${esc(m.value)}</div>
+      <div class="mh">${esc(m.hint || '')}</div></div>`;
+  const note = hasProfile
+    ? ''
+    : `<div class="mnote">没有主数据档案（规模 / 合同 / 在办商机在 CRM 里），下面是记录里能算出来的：</div>`;
+  return note + rows.map(one).join('') + btn;
+}
+
+function chainSection(c){
+  const ch = c.chain;
+  if (!ch || (!ch.nodes.length && !ch.missing.length)) return '';
+  const nodes = ch.nodes.map(n => `<div class="cn">
+      <div class="nm">${esc(n.name)}</div>
+      <div class="ti">${esc(n.title || n.role_cn)}</div>
+      <div class="rl"><span>${esc(n.role_cn)}</span>
+        <span class="tag-a ${esc(n.attitude)}">${esc(n.attitude_cn)}</span>
+        ${n.influence_cn ? `<span style="color:var(--muted)">${esc(n.influence_cn)}</span>` : ''}
+      </div></div>`);
+  const miss = (ch.missing || []).map(m => `<div class="cn miss">
+      <div class="nm">还缺：${esc(m.role_cn)}</div>
+      <div class="ti">${esc(m.hint)}</div></div>`);
+  const all = nodes.concat(miss).join('<span class="ar">→</span>');
+  return `<h2 class="sec">决策链 · 谁点头、谁在挡、还缺谁</h2>
+    <div class="chain">${all}</div>
+    <div class="hint" style="margin-top:6px">${esc(ch.note)}</div>`;
+}
+
+async function loadTodo(){
+  try {
+    S.todo = await api('/api/todo?today=' + encodeURIComponent(S.today || S.as_of));
+  } catch(e){ S.todo = null; }
+  updateTodoBadge();
+  if (S.view === 'todo') renderTodoView();
+  // 四个动作入口和待办是同一份数据（服务端就是从待办里挑的），
+  // 所以凡是待办要重算的地方，入口也一起重算——分两处触发，
+  // 迟早出现「待办说 3 件、联系入口还停在昨天的 2 个」。
+  await loadIntent();
+}
+
+function updateTodoBadge(){
+  const b = el('todoBadge');
+  if (S.todo) b.innerHTML = `${S.todo.n_total} 件 · <b>${S.todo.n_overdue}</b> 逾期`;
+  else b.textContent = '—';
+}
+
+/* ==========================================================================
+   四入口：从「我要做什么」开始
+   ==========================================================================
+
+   这一条回答的是另一个开场：用户心里有动作，没有客户名。
+   点一个动作 → 看三个客户 → 直接落到那份简报的对应块，两次点击。
+
+   为什么把「先看哪个客户」和「先定哪个动作」放在同一屏上：
+   两者不是替代关系。已经有客户名的时候，左边的列表最快；
+   只有动作的时候，这一条最快。硬要合成一条路，两种场景都会多一步。 */
+
+async function loadIntent(){
+  try {
+    S.intent = await api('/api/intent?today=' + encodeURIComponent(S.today || S.as_of));
+  } catch(e){
+    S.intent = null;
+  }
+  renderIntentBar();
+}
+
+function renderIntentBar(){
+  const box = el('ichips');
+  const d = S.intent;
+  if (!d || !d.intents || !d.intents.length){
+    box.innerHTML = '<span class="hint" style="margin:0">暂时取不到动作入口。</span>';
+    return;
+  }
+  box.innerHTML = d.intents.map(g => {
+    const n = g.picks.length;
+    const on = S.intentOpen === g.id ? ' on' : '';
+    return `<button class="ichip${on}" data-intent="${g.id}" title="${esc(g.hint)}"
+      onclick="toggleIntent('${g.id}')">${esc(g.label)}<span class="n${n ? '' : ' zero'}">${n}</span></button>`;
+  }).join('');
+  renderIntentPanel();
+}
+
+function toggleIntent(id){
+  S.intentOpen = (S.intentOpen === id) ? null : id;
+  renderIntentBar();
+}
+
+function closeIntent(){
+  S.intentOpen = null;
+  renderIntentBar();
+}
+
+function renderIntentPanel(){
+  const p = el('ipanel');
+  const d = S.intent;
+  const g = d && d.intents.find(x => x.id === S.intentOpen);
+  if (!g){ p.classList.remove('on'); p.innerHTML = ''; return; }
+
+  const rows = g.picks.length ? g.picks.map(it => {
+    const amt = it.amount > 0 ? `<span class="amt">${esc(it.amount_cn)}</span>` : '';
+    const more = it.n_more ? `<span class="ip-more">这个客户还有 ${it.n_more} 件</span>` : '';
+    return `<div class="ipick" data-cid="${it.cid}" data-brief="${it.brief_kind}" data-focus="${it.focus}"
+        onclick="pickIntent('${it.cid}','${it.brief_kind}','${it.focus}')">
+      <span class="p ${String(it.p || '').toLowerCase()}">${esc(it.p)}</span>
+      <div class="ip-main">
+        <div class="ip-t">${esc(it.cname)} · ${esc(it.title)}</div>
+        <div class="ip-w">${esc(it.kind_cn)}${it.why ? ' —— ' + esc(it.why) : ''} ${more}</div>
+      </div>
+      ${amt}
+      <span class="ip-go">打开简报 →</span>
+    </div>`;
+  }).join('') : '<div class="if">重点客户里没有这类事。这一栏空着，也比硬凑三个出来强。</div>';
+
+  // 存量客户只报个数、不参与排序：33 个存量、78 件待办混进来之后，
+  // 前 3 名几乎必然全是「不急着今天动」的。跟待办页同一个口径。
+  const foot = [
+    `重点客户里 ${g.n_candidates} 个符合「${g.label}」，按严重度和金额排，取前 ${g.picks.length} 个。`,
+    g.n_pool_candidates ? `另有 ${g.n_pool_candidates} 个存量客户也有同类事——它们不急着今天动，所以不占这几个名额。` : '',
+    '点任意一行会直接打开那份产出物，并跳到对应的那一块。',
+  ].filter(Boolean).join(' ');
+
+  p.innerHTML = `<div class="ih"><b>${esc(g.label)}</b><span>${esc(g.hint)}</span></div>${rows}
+    <div class="if">${esc(foot)}</div>`;
+  p.classList.add('on');
+}
+
+/* 两次点击里的第二次：切到那个客户，再打开对应简报到对应块。
+   顺序不能反——openBrief 读的是 S.cur，先开简报会开到上一个客户身上。 */
+async function pickIntent(cid, kind, focus){
+  closeIntent();
+  await sel(cid);
+  await openBrief(kind, focus);
+}
+
+/* ==========================================================================
+   已办：勾一条，然后真的少一件
+   ========================================================================== */
+// 两种「办完」要说成两件事：
+//   承诺类 → 事实的 fulfillment 改成 fulfilled，规则不再命中，卡上显示「已履行」；
+//   其余   → 只是「知道了别再提醒」，结论一个字都没变。
+// 混在一起说，用户会以为「我把『还没摸到决策人』勾了，系统就知道决策人是谁了」。
+async function markDone(cid, aid, undo){
+  await applyDone({customer_id: cid, aid, undo: !!undo, today: S.today || S.as_of});
+}
+
+/* 「这条我不做」。必须带原因，服务端只静默 7 天。
+   和「已办」走同一条刷新路径——否则两个按钮会让页面进入两种状态，
+   「办完一条少一条」的账就对不上了。 */
+async function markRefuse(cid, aid, reason){
+  S.refuseAid = null;
+  await applyDone({customer_id: cid, aid, mode: 'refused', reason,
+                   today: S.today || S.as_of});
+}
+
+/* 逾期承诺归因。和「我不做」是两条路：
+   「我不做」说的是「这条建议有问题」；归因说的是「这件事怎么收尾」。 */
+async function markAttribute(cid, aid, reason){
+  S.attributeAid = null;
+  await applyDone({customer_id: cid, aid, mode: 'attributed', reason,
+                   today: S.today || S.as_of});
+}
+
+async function applyDone(body){
+  try {
+    const r = await api('/api/done', body);
+    S.todo = r.todo;
+    S.doneRec = r;
+    // 服务端真的改了事实，所以必须重拉一次全量。只把 r.view 塞回 S.cur
+    // 会丢掉 records / fact_data，卡片当场白掉——而且这个白是静默的。
+    const d = await api('/api/customers');
+    S.customers = d.customers;
+    const fresh = S.cur ? S.customers.find(c => c.id === S.cur.id) : null;
+    if (fresh) S.cur = fresh;
+    updateTodoBadge();
+    if (S.view === 'todo'){ renderTodoView(); renderDoneBar(); }
+    else {
+      // quiet=true：日期没变也强制重算。setDate 在「同一天」时会直接返回，
+      // 而「已办」改的是事实不是日期——不带 quiet 的话，卡片停在旧画面上，
+      // 承诺明明已经是「已履行」，屏幕上还写着「逾期 24 天」。
+      await setDate(S.today || S.as_of, true);
+      renderDoneBar();
+    }
+    refreshFoot();
+  } catch(e){ S.refuseAid = null; S.attributeAid = null; toast(e.message, true); if (S.view === 'todo') renderTodoView(); }
+}
+
+function renderDoneBar(){
+  const r = S.doneRec;
+  const box = el('donebar');
+  if (!r){ box.innerHTML = ''; return; }
+  const t = esc(r.title || '这条待办');
+  const delta = r.delta || {removed: [], appeared: []};
+  let msg, cls = '';
+  if (r.mode === 'undone'){
+    cls = ' soft';
+    msg = `已撤销：《${t}》回到待办里。承诺的履行状态也退回去了——撤销是回到原样，不是只把界面改回来。`;
+  } else if (r.mode === 'refused'){
+    cls = ' soft';
+    // 静默期这件事必须写出来。不写的话，7 天后它自己冒回来，
+    // 用户会以为按钮坏了——而它其实一直是按约定在走。
+    msg = `<b>记下了：《${t}》</b><div class="dl">原因：${esc(r.reason_cn || r.reason)}。
+      这条先不提醒了，<b>${esc(r.silent_until || '')}</b> 之后如果还成立会再出现——
+      客户情况会变，系统不会替你永久删掉一条真事。</div>`;
+  } else if (r.mode === 'fulfilled'){
+    msg = `<b>已标记履行：《${t}》</b><div class="dl">这条承诺在卡上的状态从「逾期」变成「已履行」，逾期天数消失。不是从列表里藏起来——是它真的不再是问题了。</div>`;
+  } else if (r.mode === 'attributed'){
+    // 三种归因的回执必须说得不一样。合成一句「已记录」，
+    // 用户会以为「还在追」和「客户不需要了」是同一件事——
+    // 而前者是提醒周期，后者是关账，账上的区别是几十万。
+    if (r.reason === 'chasing'){
+      cls = ' soft';
+      msg = `<b>好，先压住：《${t}》</b><div class="dl">
+        到 <b>${esc(r.silent_until || '')}</b> 之前不再提醒你。
+        <b>逾期天数照实留着</b>——客户那边确实还没拿到东西，这个数不能因为你说「还在追」就清零。
+        一个月后如果还没兑现，它会自己回来。</div>`;
+      } else if (r.reason === 'not_needed'){
+        msg = `<b>已关账：《${t}》</b><div class="dl">
+        这条承诺在卡上标成「已放弃」，不再算欠客户的事。这是真的状态变更，不是把它藏起来——撤销会退回去。</div>`;
+      } else {
+        cls = ' soft';
+        msg = `<b>已转内部：《${t}》</b><div class="dl">
+        承诺还在，但不再算客户账上欠的了。以后它不进客户的待办——如果内部那条也要盯，得另开一条。</div>`;
+    }
+  } else {
+    cls = ' soft';
+    msg = `<b>已办：《${t}》</b><div class="dl">这条建议不再出现在待办里。<b>但结论本身没变</b>——这个客户该缺的还是缺，你只是决定不再重复看它。</div>`;
+  }
+  if (delta.appeared && delta.appeared.length){
+    msg += `<div class="dl">顺手补一句：列表里又顶上一条（${esc(delta.appeared[0])}），所以待办总数没变，但这一条是真办完了。</div>`;
+  }
+  const undoBtn = (r.mode === 'undone' || !r.aid) ? ''
+    : `<span class="undo" onclick="markDone('${r.view.id}','${r.aid}',true)">撤销</span>`;
+  box.innerHTML = `<div class="donebar${cls}">
+    <span class="x" onclick="S.doneRec=null;renderDoneBar()">×</span>${msg}${undoBtn}</div>`;
+}
+
+function closeDone(){ S.doneRec = null; renderDoneBar(); }
+
+function renderTodoView(){
+  const t = S.todo;
+  el('cname').textContent = '今天要做的事';
+  el('cmeta').innerHTML = t
+    ? `<span>基准日 ${esc(t.as_of)}</span><span>手上 ${t.n_accounts} 个客户（重点 ${t.n_focus_accounts} · 存量 ${t.n_pool_accounts}）</span>
+       <span>今日必做 ${t.n_total} 件</span>`
+    : '';
+  el('strip').innerHTML = '';
+  el('verdict').innerHTML = t ? `<b>先看这句：</b>${esc(t.headline)}` : '';
+  if (!t){
+    el('panel').innerHTML = '<div class="empty">待办没取到，刷新一下页面。</div>';
+    return;
+  }
+
+  // 三档筛子。默认停在「重点客户」：94 件一起铺开，等于没有筛。
+  const f = S.todoFilter || 'focus';
+  const pool = t.by_pool || {focus:{n_items:0}, pool:{n_items:0}};
+  const all = (pool.focus.n_items || 0) + (pool.pool.n_items || 0);
+  const seg = `<div class="seg">
+      <button class="${f === 'focus' ? 'on' : ''}" onclick="setTodoFilter('focus')">重点客户 <b>${pool.focus.n_items}</b></button>
+      <button class="${f === 'pool' ? 'on' : ''}" onclick="setTodoFilter('pool')">存量客户 <b>${pool.pool.n_items}</b></button>
+      <button class="${f === 'all' ? 'on' : ''}" onclick="setTodoFilter('all')">全部 <b>${all}</b></button>
+    </div>`;
+
+  const rows = t.items.filter(it => f === 'all' || (f === 'pool') === !!it.pool);
+  // 两区：上半是「要做的事」（打电话、兑现承诺、补关系），
+  // 下半是「要补的数据」（补档案、确认口径、问清日期）。
+  // 混在一起排是这一页最大的问题：94 件里一半是录入任务，
+  // 用户打开看到的第一屏全是「请补充」，他会正确地得出「这玩意儿在给我派活」。
+  const acts = rows.filter(it => it.bucket !== 'fill');
+  const fills = rows.filter(it => it.bucket === 'fill');
+  const today = acts.filter(it => it.when === 'today');
+  const week = acts.filter(it => it.when === 'week');
+  // 历史欠账：逾期 >90 天、没人归因。单独一栏不是藏起来——
+  // 它照样在旁边、照样能点，只是不占今天那三格。
+  // 混在「本周内再排」里，它会一直排下去，排 116 天就是现在这个问题。
+  const historic = acts.filter(it => it.when === 'historic');
+
+  // do 区才会有「看简报」——补数据那一片要的是把信息问回来，
+  // 而简报本身就是从已有事实拼出来的，给一条空档案的客户看简报只会看到一片「没有记录」。
+  const briefBtn = it => it.bucket === 'do' && it.brief_kind
+    ? `<button class="dbtn brief" title="打开这个客户的${it.brief_kind === 'proposal' ? '方案准备' : it.brief_kind === 'handover' ? '交接说明' : '拜访简报'}，直接落到对应的那一块" onclick="event.stopPropagation();todoBrief('${it.cid}','${it.brief_kind}','${it.focus}')">简报</button>`
+    : '';
+
+  const rowHtml = it => `<div class="ti${it.pool ? ' poolitem' : ''}${it.when === 'historic' ? ' backlogitem' : ''}" onclick="gotoTodo('${it.cid}','${it.basis || ''}')">
+      <span class="p ${it.p.toLowerCase()}">${it.p}</span>
+      <div><div class="t">${esc(it.title)}</div><div class="w">${esc(it.why)}</div></div>
+      ${it.amount > 0 ? `<span class="amt" title="在办商机 ${esc(it.amount_cn)}">${esc(it.amount_cn)}</span>` : ''}
+      <span class="k">${esc(it.kind_cn)}</span>
+      <span class="c">${esc(it.cname)} →</span>
+      ${briefBtn(it)}
+      ${doneBtn(it)}
+    </div>`;
+  const zone = list => `<div class="todo">${
+    list.map(rowHtml).join('') ||
+    '<div class="empty">这一栏没有待办。这不是故障——是真没事。</div>'}</div>`;
+
+  const lead = f === 'pool'
+    ? `存量客户 <b>${pool.pool.n_customers}</b> 个，<b>${pool.pool.n_items}</b> 件待办——其中 ${pool.pool.n_overdue} 件逾期承诺。这些不是今天必须动的，但一条都不看，它们就会在两个月后变成「怎么突然没人管了」。`
+    : f === 'all'
+      ? `全部 ${all} 件一起排。真正需要今天动手的是最上面那几行，剩下的按急排着，不用一次看完。`
+      : `先看这 ${pool.focus.n_items} 件。重点客户只有 ${t.n_focus_accounts} 个，但手上还有 ${t.n_pool_accounts} 个存量客户——分开看，是因为「哪一个该今天看」不该让你自己去 39 行里猜。`;
+
+  // 「今日名额」直接写在标题上。不写的话，用户会以为自己漏看了一半。
+  const capNote = t.budget > 0 ? `今日名额 ${t.budget}` : '未设上限';
+  // 存量客户那一栏不分「今天/本周」：这些待办本来就写着「不急着今天动」，
+  // 给它们画一个「今天要打的电话 0 件」的标题，等于在页面上说一句假话。
+  const body = f === 'pool'
+    ? `<h2 class="sec">存量客户的待办 <span class="secnote">${acts.length} 件 · 不急着今天动</span></h2>${zone(acts)}`
+    : `<h2 class="sec">今天要打的电话 <span class="secnote">${today.length} 件 · ${capNote}</span></h2>
+    ${zone(today)}
+    ${week.length ? `<h2 class="sec">本周内再排 <span class="secnote">${week.length} 件 · 今天做不完是正常的，别为它焦虑</span></h2>${zone(week)}` : ''}
+    ${historic.length ? `<h2 class="sec backlog">历史欠账 <span class="secnote">${historic.length} 件 · 拖过 90 天没人表态，先决定还发不发</span></h2>
+    <div class="hint" style="margin:0 0 10px">这几件不是今天要做的事，是今天该有人拍的板。一直挂着不动，它就会一直出现在这里——所以这里给的不是「去办」，是三个收尾选项。</div>${zone(historic)}` : ''}`;
+
+  const fillBlock = fills.length
+    ? `<h2 class="sec">要补的数据 <span class="secnote">${fills.length} 件 · 攒一次一起补，不占今天的电话时间</span></h2><div class="fillzone">${zone(fills)}</div>`
+    : '';
+  el('panel').innerHTML = `${seg}<div class="hint" style="margin:0 0 14px">${lead}</div>${body}${fillBlock}`;
+}
+
+function setTodoFilter(v){
+  S.todoFilter = v;
+  renderTodoView();
+  el('panel').scrollTop = 0;
+}
+
+// 按钮文案跟着含义走：能真办完的叫「已履行」，只是不再提醒的叫「已办」。
+// 第三个按钮是「我不做」，它和「已办」的区别不在措辞，在静默期：
+// 已办 = 永久不提；我不做 = 7 天后可能再出现。
+function doneBtn(it){
+  if (S.refuseAid === it.aid) return refuseChooser(it);
+  if (S.attributeAid === it.aid) return attributeChooser(it);
+  // 逾期超过 30 天的，主按钮换成「给个说法」。
+  // 这时「已履行」是假的（东西还没发出去），「我不做」也不对（事实没错）。
+  // 真正的问题是「还发不发」，所以把那个问题直接做成按钮。
+  if (it.aging) return `<button class="dbtn ask" title="拖了这么久，需要有人决定还发不发" onclick="event.stopPropagation();askAttribute('${it.aid}')">？给个说法</button>
+    <button class="dbtn" title="已经把东西发出去了：承诺标记为已履行" onclick="event.stopPropagation();markDone('${it.cid}','${it.aid}')">✓ 已履行</button>`;
+  const hint = it.can_fulfill
+    ? '把这条承诺标成已履行：逾期消失，规则不再命中'
+    : '知道了，别再出现在待办里（结论不变）';
+  const label = it.can_fulfill ? '✓ 已履行' : '✓ 已办';
+  return `<button class="dbtn" title="${hint}" onclick="event.stopPropagation();markDone('${it.cid}','${it.aid}')">${label}</button>
+    <button class="dbtn no" title="这条建议本身有问题：说清原因，7 天后再提" onclick="event.stopPropagation();askRefuse('${it.aid}')">✕ 我不做</button>`;
+}
+
+// 归因选项同样来自服务端（/api/health.attribute_reasons）。
+// 前端自己编一份，迟早在某次改动后和静默天数对不上——
+// 界面上会出现一个点了没反应的按钮。
+function attributeChooser(it){
+  const rs = (S.health && S.health.attribute_reasons) || {};
+  const days = (S.health && S.health.chase_silence_days) || 30;
+  const btns = Object.entries(rs).map(([k, cn]) => {
+    const t = k === 'chasing' ? `选这个就先压 ${days} 天，逾期天数照实留着`
+            : k === 'not_needed' ? '承诺就此不成立，卡上会标「已放弃」，可撤销'
+            : '从客户欠账里挪走，不再进待办';
+    return `<button class="dbtn rs" title="${esc(t)}" onclick="event.stopPropagation();markAttribute('${it.cid}','${it.aid}','${k}')">${esc(cn)}</button>`;
+  }).join('');
+  return `<span class="refuseask">还发不发？</span>${btns}
+    <button class="dbtn" onclick="event.stopPropagation();cancelAttribute()">取消</button>`;
+}
+
+function askAttribute(aid){
+  S.attributeAid = (S.attributeAid === aid) ? null : aid;
+  S.refuseAid = null;
+  renderTodoView();
+}
+
+function cancelAttribute(){
+  S.attributeAid = null;
+  renderTodoView();
+}
+
+// 原因就在这一行里选。为什么不弹窗：三选一的动作盖住整张表，
+// 用户会以为系统要他填一个表单；而且弹窗一关，这条待办就找不回来了。
+function refuseChooser(it){
+  const rs = (S.health && S.health.refuse_reasons) || {};
+  const btns = Object.entries(rs).map(([k, cn]) =>
+    `<button class="dbtn rs" title="选这个就静默 7 天" onclick="event.stopPropagation();markRefuse('${it.cid}','${it.aid}','${k}')">${esc(cn)}</button>`).join('');
+  return `<span class="refuseask">为什么不做？</span>${btns}
+    <button class="dbtn" onclick="event.stopPropagation();cancelRefuse()">取消</button>`;
+}
+
+function askRefuse(aid){
+  S.refuseAid = (S.refuseAid === aid) ? null : aid;
+  renderTodoView();
+}
+
+function cancelRefuse(){
+  S.refuseAid = null;
+  renderTodoView();
+}
+
+async function gotoTodo(cid, basis){
+  S.view = 'customer';
+  el('navTodo').classList.remove('on');
+  await sel(cid);
+  if (basis) setTimeout(() => jump(basis), 80);
+}
+
+/* 待办行上的「简报」：一跳到位，落到那条建议对应的块。
+   不传 focus 的话，点「补发《数据清理方案》」会开在标题上，
+   用户还得往下翻七块找那句话——那这一跳等于没跳。 */
+async function todoBrief(cid, kind, focus){
+  S.view = 'customer';
+  el('navTodo').classList.remove('on');
+  await sel(cid);
+  await openBrief(kind, focus);
+}
+
+/* `focus` 是「落到哪一块」（块 id 由 demo/brief.py 定义）。
+   为什么必须支持它：待办说「补发《数据清理方案》」，点开简报却停在标题上，
+   用户得自己往下翻七块去找那句话——那这一跳就等于没跳。 */
+async function openBrief(kind, focus){
+  if (!S.cur) return;
+  const TITLES = {visit: '拜访简报', proposal: '方案准备', handover: '交接说明'};
+  S.briefKind = kind;
+  S.briefFocus = focus || '';
+  el('btitle').textContent = TITLES[kind] || '拜访简报';
+  el('bbody').innerHTML = '<div class="empty" style="padding:16px">生成中…</div>';
+  el('bdrawer').classList.add('on'); el('bmask').classList.add('on');
+  try {
+    const b = await api('/api/brief', {customer_id: S.cur.id, today: S.today, kind});
+    S.brief = b;
+    el('btitle').textContent = b.title;
+    el('bbody').innerHTML = briefHtml(b);
+    if (focus) focusBlock(focus);
+  } catch(e){
+    el('bbody').innerHTML = `<div class="empty" style="padding:16px">生成失败：${esc(e.message)}</div>`;
+  }
+}
+
+/* 滚到那一块并标记。找不到就什么都不做——但这种情况应该被测试拦住：
+   落点写错时页面不会报错，只会安静地停在顶部，最难查。 */
+function focusBlock(bid){
+  document.querySelectorAll('.brief .blk').forEach(n => n.classList.remove('focus'));
+  const n = document.getElementById('bb-' + bid);
+  if (!n) return false;
+  n.classList.add('focus');
+  // 标题从载荷里取，不从 DOM 里抓：桩不做 DOM 解析，
+  // 从 DOM 取会让这条路径在测试里跑不到。
+  const blk = ((S.brief && S.brief.blocks) || []).find(b => b.id === bid);
+  const loc = el('blocator');
+  if (loc){
+    loc.innerHTML = `已定位到「${esc(blk ? blk.h : bid)}」` +
+      `<a onclick="clearBriefFocus()">看全文</a>`;
+  }
+  setTimeout(() => { try { n.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){} }, 60);
+  return true;
+}
+
+function clearBriefFocus(){
+  // 先按记下的块 id 精确摘掉高亮，再兜一遍全量清除：
+  // 只靠 `.brief .blk` 选择器的话，状态丢了就再也清不掉（界面上一直亮着一块）。
+  const bid = S.briefFocus;
+  S.briefFocus = '';
+  if (bid){
+    const n = document.getElementById('bb-' + bid);
+    if (n) n.classList.remove('focus');
+  }
+  document.querySelectorAll('.brief .blk').forEach(n => n.classList.remove('focus'));
+  const loc = el('blocator');
+  if (loc) loc.innerHTML = '';
+  try { el('bbody').scrollTop = 0; } catch(e){}
+}
+
+/* 复制成 Markdown。
+   拼装在后端做（/api/brief 带 format=md），前端只负责写剪贴板：
+   格式逻辑只留一份，单元测试才验得到；写两遍迟早会漂。 */
+const COPY_LABEL = '复制 Markdown';
+
+async function copyBrief(){
+  if (!S.cur) return;
+  const btn = el('bcopy');
+  if (btn.dataset.busy === '1') return;
+  btn.dataset.busy = '1';
+  try {
+    const r = await api('/api/brief', {customer_id: S.cur.id, today: S.today,
+                                       kind: S.briefKind || 'visit', format: 'md'});
+    if (!r || !r.markdown) throw new Error('服务端没给 markdown');
+    await copyText(r.markdown);
+    flashCopy(btn, '已复制 ' + r.markdown.length + ' 字', 'ok');
+  } catch(e){
+    // 复制失败要说出来。默不作声地失败，用户会去邮件里粘出一片空白。
+    flashCopy(btn, '复制失败', 'fail');
+    console.warn('复制简报失败', e);
+  } finally {
+    delete btn.dataset.busy;
+  }
+}
+
+async function copyText(text){
+  // 首选 Clipboard API；非安全上下文（file:// 打开、内网 http）会没有这个对象，
+  // 退回 textarea + execCommand——难看但能用，总比让用户手抄一遍强。
+  if (navigator.clipboard && window.isSecureContext){
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand && document.execCommand('copy');
+  document.body.removeChild(ta);
+  if (!ok) throw new Error('浏览器不允许写剪贴板');
+}
+
+function flashCopy(btn, text, cls){
+  btn.textContent = text;
+  btn.classList.remove('ok', 'fail');
+  if (cls) btn.classList.add(cls);
+  // 恢复成固定标签，不是「进来时的那串字」：连点两次时，第二次读到的
+  // 会是「已复制 454 字」，恢复后就永久停在那个中间态。
+  clearTimeout(btn._t);
+  btn._t = setTimeout(() => {
+    btn.textContent = COPY_LABEL;
+    btn.classList.remove('ok', 'fail');
+  }, 1800);
+}
+
+function briefHtml(b){
+  let h = `<div class="bhead">${esc(b.title)}</div>
+    <div class="bsub">${esc(b.subtitle)}</div>
+    <div class="hint" style="margin-top:8px">这份东西由已有事实和规则拼出来，没有经过模型自由发挥——每一句都能在「全部记录」里找到出处。</div>
+    <div class="blocator" id="blocator"></div>`;
+  for (const blk of b.blocks){
+    // 每块带 id：待办深链要靠它落到具体的块上（见 focusBlock）。
+    h += `<div class="blk" id="bb-${esc(blk.id || '')}"><h3>${esc(blk.h)}</h3>` + blk.items.map(it => {
+      const key = it.key ? ` onclick="jump('${it.key}')" style="cursor:pointer"` : '';
+      return `<div class="it${it.bad ? ' bad' : ''}"${key}>${esc(it.text)}${it.meta ? `<span class="mt">${esc(it.meta)}</span>` : ''}</div>`;
+    }).join('') + `</div>`;
+  }
+  return h;
+}
+
+function closeBrief(){
+  el('bdrawer').classList.remove('on');
+  el('bmask').classList.remove('on');
+  // 落点也要清：不清的话，下一次从「拜访简报」按钮正常打开时，
+  // 上一跳的高亮还留着，看起来像这次也定位到了什么。
+  S.briefFocus = '';
+  document.querySelectorAll('.brief .blk').forEach(n => n.classList.remove('focus'));
+}
+
+// ---- 编辑档案 ----
+// 空档案开「最小档案」模式：只有四格。
+// 14 格空表单的实际结局是一项都不填，而这四项在档案条上直接参与判断。
+function peditMode(minimal){
+  const min = !!minimal;
+  el('pf_min').style.display = '';
+  el('pf_rest').style.display = min ? 'none' : '';
+  el('pf_minnote').style.display = min ? '' : 'none';
+  el('peexpand').style.display = min ? '' : 'none';
+  el('pesubmit').textContent = min ? '保存这 4 项' : '保存';
+  el('pmask').classList.add('on');
+  el('pedit').classList.add('on');
+}
+
+function openPedit(minimal){
+  if (!S.cur) return;
+  const c = S.cur;
+  const p = c.profile || {};
+  const opp = p.open_opportunity || {};
+  const ct = p.contract || {};
+  const tk = p.tickets_90d || {};
+  el('pf_industry').value = c.industry || '';
+  el('pf_stage').value = c.stage || '';
+  el('pf_owner').value = c.owner || '';
+  el('pf_scale').value = p.scale || '';
+  el('pf_since').value = p.since || '';
+  el('pf_opp_name').value = opp.name || '';
+  el('pf_opp_amount').value = opp.amount ?? '';
+  el('pf_opp_stage').value = opp.stage || '';
+  el('pf_contract_exp').value = ct.expires_on || '';
+  el('pf_contract_arr').value = ct.arr ?? '';
+  el('pf_tickets_n').value = tk.n ?? '';
+  el('pf_relationship').value = p.relationship || '';
+  el('pf_comm_pref').value = p.comm_pref || '';
+  el('pf_products').value = p.products || '';
+  el('pf_decision_process').value = p.decision_process || '';
+  el('peprog').textContent = '';
+  // 变更日志
+  const cl = c.change_log || [];
+  if (cl.length){
+    el('pf_changelog_wrap').style.display = '';
+    el('pf_changelog').innerHTML = cl.slice(-5).reverse().map(e =>
+      `<div>${esc(e.at)} · ${esc(e.who)} · <b>${esc(e.field)}</b>：${esc(String(e.old ?? '空'))} → ${esc(String(e.new ?? '空'))}</div>`
+    ).join('');
+  } else {
+    el('pf_changelog_wrap').style.display = 'none';
+  }
+  // 没指定就按档案空不空自己判：空档案只开四格，
+  // 有两格的客户不该被挡住——他多半是来改金额的，不是来补全的。
+  peditMode(minimal === undefined ? !Object.keys(p).length : minimal);
+}
+
+function closePedit(){
+  el('pmask').classList.remove('on');
+  el('pedit').classList.remove('on');
+}
+
+async function savePedit(){
+  if (!S.cur) return;
+  const num = v => v === '' ? null : (isNaN(Number(v)) ? v : Number(v));
+  const profile = {
+    industry: el('pf_industry').value.trim(),
+    stage: el('pf_stage').value.trim(),
+    owner: el('pf_owner').value.trim(),
+    scale: el('pf_scale').value.trim(),
+    since: el('pf_since').value.trim(),
+    relationship: el('pf_relationship').value,
+    comm_pref: el('pf_comm_pref').value.trim(),
+    products: el('pf_products').value.trim(),
+    decision_process: el('pf_decision_process').value.trim(),
+  };
+  // 金额在最小模式下也会填，而名称/阶段在隐藏的那一半里是空的——
+  // 所以不能再用「名称有值才提交金额」这个条件，否则最小档案填的金额会被吞掉。
+  const oppName = el('pf_opp_name').value.trim();
+  const oppAmt = num(el('pf_opp_amount').value);
+  if (oppName || oppAmt !== null)
+    profile.open_opportunity = {name: oppName, amount: oppAmt, stage: el('pf_opp_stage').value.trim()};
+  const ctExp = el('pf_contract_exp').value.trim();
+  if (ctExp) profile.contract = {expires_on: ctExp, arr: num(el('pf_contract_arr').value)};
+  const tkN = el('pf_tickets_n').value.trim();
+  if (tkN !== '') profile.tickets_90d = {n: num(tkN)};
+  // 清掉空字符串（后端只关心有值的）
+  for (const k of Object.keys(profile)){
+    if (profile[k] === '' || profile[k] === null || profile[k] === undefined) delete profile[k];
+    if (typeof profile[k] === 'object'){
+      for (const sk of Object.keys(profile[k])){
+        if (profile[k][sk] === '' || profile[k][sk] === null) delete profile[k][sk];
+      }
+    }
+  }
+  el('peprog').textContent = '保存中…';
+  try {
+    const r = await api('/api/profile', {customer_id: S.cur.id, profile});
+    el('peprog').textContent = `已改 ${r.n_changed} 项`;
+    toast(`档案已更新${r.n_changed ? `（${r.n_changed} 项改动）` : '（无变化）'}`);
+    closePedit();
+    // 重拉客户列表，档案条和变更日志都要刷新
+    const d = await api('/api/customers');
+    S.customers = d.customers;
+    S.cur = S.customers.find(x => x.id === S.cur.id) || S.customers[0] || null;
+    renderList(); render();
+  } catch(e){
+    el('peprog').textContent = '失败';
+    toast('保存失败：' + e.message);
+  }
+}
+
+// 绑定事件
+el('peclose').onclick = closePedit;
+el('pecancel').onclick = closePedit;
+el('pmask').onclick = closePedit;
+el('pesubmit').onclick = savePedit;
+el('peexpand').onclick = () => peditMode(false);
+
+function render(){
+  if (S.view === 'todo'){ renderTodoView(); return; }
+  const c = S.cur;
+  if (!c){
+    el('cname').textContent = '还没有客户';
+    el('cmeta').innerHTML = '';
+    el('strip').innerHTML = '';
+    el('verdict').innerHTML = '';
+    el('panel').innerHTML = '<div class="empty">点左上角「＋ 记一笔」开始。</div>';
+    return;
+  }
+  el('cname').textContent = c.name;
+  el('cmeta').innerHTML = `<span>${esc(c.industry || '行业未知')}</span><span>${esc(c.stage || '阶段未知')}</span>
+    <span>客户负责人：${esc(c.owner)}</span><span>${c.records.length} 条记录 · ${c.facts.length} 条事实${(c.n_pending_records || c.n_pending_facts) ? `（另有 ${(c.n_pending_records || 0) + (c.n_pending_facts || 0)} 条未到基准日）` : ''}</span>
+    ${c.pool ? '<span>存量客户 · 原文与事实来自评测集</span>' : ''}
+    <span>基准日 ${S.today}</span>`;
+  el('strip').innerHTML = renderStrip(c);
+  const npr = c.n_pending_records || 0, npf = c.n_pending_facts || 0;
+  const pendParts = [npr ? `${npr} 条记录` : '', npf ? `${npf} 条事实` : ''].filter(Boolean).join('、');
+  el('verdict').innerHTML = `<b>一句话结论：</b>${esc(c.summary)}` +
+    (pendParts
+      ? `<div class="pendnote">⏳ 还有 ${pendParts}的日期在基准日（${S.today}）之后，现在看不到——把下方基准日调到之后的日期即可查看，无需重新上传。</div>`
+      : '');
+  el('panel').innerHTML = S.tab === 'card' ? renderCard(c)
+    : S.tab === 'timeline' ? renderTimeline(c) : renderRecords(c);
+  document.querySelectorAll('.item').forEach(n => n.classList.toggle('on', n.dataset.id === c.id));
+  updateDateBar();
+}
+
+/* ==========================================================================
+   基准日：拖一下，结论就要跟着变
+   ========================================================================== */
+function dayOffset(d){
+  // 以默认基准日为零点，把日期换算成滑块刻度（天）
+  return Math.round((Date.parse(d) - Date.parse(S.as_of)) / 86400000);
+}
+function offsetToDate(n){
+  return new Date(Date.parse(S.as_of) + n * 86400000).toISOString().slice(0, 10);
+}
+
+function updateDateBar(){
+  const c = S.cur;
+  if (!c) return;
+  const rg = c.date_range || {min: S.as_of, max: S.as_of};
+  const lo = Math.min(dayOffset(rg.min), 0);
+  const hi = Math.max(dayOffset(rg.max), 0);
+  el('dtslider').min = lo;
+  el('dtslider').max = hi;
+  el('dtslider').value = dayOffset(S.today);
+  el('dtpicker').value = S.today;
+  const off = dayOffset(S.today);
+  el('dtlabel').textContent = off === 0 ? `${S.today}（默认）`
+    : (off > 0 ? `${S.today}（+${off} 天）` : `${S.today}（${off} 天）`);
+  const nOver = c.facts.filter(f => f.overdue && !f.superseded).length;
+  // 拖回过去时，晚于基准日的记录还不存在。这件事必须说出来：
+  // 否则用户看到「记录少了」会以为系统丢数据，而不是「那时你还没写这篇」。
+  const pend = c.n_pending_records || 0;
+  el('dtinfo').textContent = `逾期承诺 ${nOver} 条`
+    + (pend ? ` · 另有 ${pend} 条记录发生在 ${S.today} 之后` : '');
+  el('dtreset').textContent = `回到 ${S.as_of.slice(5)}`;
+}
+
+function snapshotBase(){
+  if (!S.cur) return;
+  S.baseView = {
+    n_p0: S.cur.n_p0,
+    n_overdue: S.cur.facts.filter(f => f.overdue && !f.superseded).length,
+    titles: S.cur.actions.map(a => a.title),
+    summary: S.cur.summary
+  };
+  S.baseDate = S.today;
+}
+
+async function setDate(d, quiet){
+  if (!S.cur || !d) return;
+  if (d === S.today && !quiet) return;
+  const my = ++S.seq;
+  S.today = d;
+  S.actDelta = null;          // 换了时点，上一次动作的回执就过期了
+  el('dtslider').value = dayOffset(d);
+  el('dtpicker').value = d;
+
+  try {
+    const r = await api('/api/analyze', {
+      customer_id: S.cur.id, fact_data: S.cur.fact_data, today: d
+    });
+    if (my !== S.seq) return;            // 拖得快，丢掉过期响应
+    applyView(r.view);
+    render(); renderDelta();
+    loadTodo();          // 待办也按基准日算：拖到下周，逾期清单就该变
+  } catch(e){
+    toast(e.message, true);
+  }
+}
+
+function applyView(view){
+  // 视图字段覆盖到当前客户，fact_data 与渲染用的 facts 分开保管：
+  // facts 是按基准日算出来的行，fact_data 是回传给服务端的原始事实。
+  const fd = S.cur.fact_data;
+  const id = S.cur.id;
+  Object.assign(S.cur, view);
+  S.cur.fact_data = fd;
+  S.cur.id = id;
+  const i = S.customers.findIndex(c => c.id === id);
+  if (i >= 0) S.customers[i] = S.cur;
+}
+
+/* ==========================================================================
+   纠错：这条不对 → 撤回 → 立刻重算
+   ========================================================================== */
+function shortText(s, n){
+  s = String(s || '');
+  return s.length <= n ? s : s.slice(0, n - 1) + '…';
+}
+
+async function retract(key, undo){
+  const f = (S.cur.facts || []).find(x => x.key === key);
+  if (!f) return;
+  // 复制一份再改：直接改 S.cur.fact_data 的话，请求失败时本地已经脏了，
+  // 界面显示「已撤回」而服务端没收到，比不撤回更糟。
+  const fd = S.cur.fact_data.map(d => ({...d}));
+  const target = fd.find(d => d.fact_id === f.fid);
+  if (!target){ toast('这条事实不在回传数据里，撤回不了。', true); return; }
+
+  const before = {
+    n_p0: S.cur.n_p0,
+    over: S.cur.facts.filter(x => x.overdue && !x.superseded).length,
+    summary: S.cur.summary
+  };
+  // 撤销就回到 active。这里不必还原「撤回之前是什么状态」——
+  // 归并那一趟本来就会重算所有未撤回事实的状态，存不存都被覆盖。
+  target.status = undo ? 'active' : 'retracted';
+
+  try {
+    const r = await api('/api/analyze', {
+      customer_id: S.cur.id, fact_data: fd, today: S.today
+    });
+    applyView(r.view);
+    S.cur.fact_data = fd;      // applyView 保留的是旧数组，必须覆盖
+    render();
+    // 抽屉里也能点「这条不对」，但抽屉内容不会跟着重算。留着只会自相矛盾：
+    // 外面那张卡已经划掉了，抽屉里还写着原话。
+    if (el('drawer').classList.contains('on')) closeRec();
+
+    const after = {
+      n_p0: S.cur.n_p0,
+      over: S.cur.facts.filter(x => x.overdue && !x.superseded).length
+    };
+    const arrow = (a, b, worseIsUp) => a === b
+      ? `<b>${a}</b> 条不变`
+      : `<b class="${(a > b) === worseIsUp ? 'up' : 'down'}">${b} → ${a}</b> 条`;
+    S.actDelta = {
+      lines: [
+        `${undo ? '已撤销撤回' : '这条不对，已撤回'}：${esc(f.type_cn)}「${esc(shortText(f.statement, 16))}」`,
+        `P0 ${arrow(after.n_p0, before.n_p0, true)}`,
+        `逾期承诺 ${arrow(after.over, before.over, true)}`
+      ],
+      extra: after.n_p0 === before.n_p0 && after.over === before.over
+        ? `<div class="dlist"><span style="color:#5f6672">结论没变——这条不是当前结论的依据</span></div>`
+        : ''
+    };
+    renderDelta();
+    renderList();
+    toast(`${undo ? '已撤销' : '已撤回'}。P0 ${before.n_p0} → ${after.n_p0}`, false);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function renderDelta(){
+  const d = el('delta');
+  // 动作回执优先：它描述的是「你刚做了什么，结论因此变成什么」，
+  // 比「较基准日变化」更即时，两者同时出现会互相打架。
+  if (S.actDelta){
+    d.className = 'delta on';
+    d.innerHTML = S.actDelta.lines.join('　·　') + (S.actDelta.extra || '');
+    return;
+  }
+  if (!S.baseView || !S.baseDate || S.baseDate === S.today){
+    d.className = 'delta'; d.innerHTML = '';
+    return;
+  }
+  const now = {
+    n_p0: S.cur.n_p0,
+    n_overdue: S.cur.facts.filter(f => f.overdue && !f.superseded).length,
+    titles: S.cur.actions.map(a => a.title)
+  };
+  const b = S.baseView;
+  const cls = (a, bb, worseIsUp) => {
+    if (a === bb) return `<b>${a}</b> 条不变`;
+    const up = a > bb;
+    const c = (up === worseIsUp) ? 'up' : 'down';
+    return `<b class="${c}">${bb} → ${a}</b> 条`;
+  };
+  const added = now.titles.filter(t => !b.titles.includes(t));
+  const gone = b.titles.filter(t => !now.titles.includes(t));
+  const parts = [`较 ${S.baseDate}，P0 ${cls(now.n_p0, b.n_p0, true)}`,
+                 `逾期承诺 ${cls(now.n_overdue, b.n_overdue, true)}`];
+  let extra = '';
+  if (added.length) extra += `<div class="dlist">新增：${added.map(t => `<span>· ${esc(t)}</span>`).join('')}</div>`;
+  if (gone.length) extra += `<div class="dlist">消失：${gone.map(t => `<span style="color:#5f6672">· ${esc(t)}</span>`).join('')}</div>`;
+  d.className = 'delta on';
+  d.innerHTML = parts.join('　·　') + extra;
+}
+
+// 侧栏分两段：重点客户 6 个、存量客户 33 个。
+// 不分组的话，39 行平铺下来，演示时第一眼看不出「哪几个是我在跟的」——
+// 而 39 这个数字本身又必须看见，否则「今天要做的事」那一页就没有分量。
+function renderList(q = ''){
+  const kw = (q || '').trim();
+  const hit = c => !kw || c.name.includes(kw) || (c.industry || '').includes(kw);
+
+  const row = c => `<div class="item${c.pool ? ' poolcust' : ''}" data-id="${c.id}" onclick="sel('${c.id}')">
+      <div class="n">${esc(c.name)}${c.synthetic ? '<span class="new">现场录入</span>' : ''}</div>
+      <div class="m"><span>${esc(c.stage || '阶段未知')}</span><span>·</span><span>${c.facts.length} 条事实</span>
+      ${c.n_p0 ? `<span>·</span><span style="color:#b42318;font-weight:600">${c.n_p0} 条 P0</span>` : ''}</div>
+    </div>`;
+
+  const focus = S.customers.filter(c => !c.pool && hit(c));
+  const pool = S.customers.filter(c => c.pool && hit(c));
+  let html = '';
+  if (focus.length){
+    html += `<div class="grp"><span>重点客户</span><span class="n">${focus.length}</span></div>`
+      + focus.map(row).join('');
+  }
+  if (pool.length){
+    // 搜索时不折叠：用户点名要找某个存量客户，还让他先展开一次就是找麻烦。
+    html += `<div class="grp"><span>存量客户</span><span class="n">${pool.length} 个 · 来自评测集</span></div>`
+      + pool.map(row).join('');
+  }
+  el('list').innerHTML = html || '<div class="empty" style="margin:10px">没有匹配的客户</div>';
+}
+
+// 拒收原因按类报。「溯源定位不到原文」只是其中一种，写成全部会误导：
+// 实测里更常见的是「payload 必填字段为空」——模型抽到了但没答完。
+function rejectText(list){
+  const arr = list || [];
+  if (!arr.length) return '原因未分类';
+  return arr.map(x => `${x.reason} ${x.n} 条`).join('、');
+}
+
+function renderReceipt(){  const r = S.receipt;
+  if (!r){ el('receipt').className = 'receipt'; el('receipt').innerHTML = ''; return; }
+  const cls = r.offline ? 'receipt warn' : 'receipt';
+  el('receipt').className = cls + ' on';
+  // 0 条不能只说「没抽出可用事实」。原因有三种，说法不同：
+  // 太短（补两句话就能抽）、模型判定确实没事实（不抽是结论）、被校验拒收（系统不肯猜）。
+  // 以前这里写死了一句「原文只有一句『还在走流程』」，换一段文本就成了瞎编。
+  const head = r.n_facts === 0
+    ? `<span class="rt">这段文本抽出 0 条事实</span>
+       <span class="rs">——${esc(r.empty_hint || '原因未给出。')}</span>`
+    : `<span class="rt">本次入库 ${r.n_facts} 条事实</span>
+       <span class="rs">（${r.secs}s · ${r.src}${r.model ? ' · ' + r.model : ''}）</span>
+       ${r.n_rejected ? `<span class="rs">，拒收 ${r.n_rejected} 条（${esc(rejectText(r.rejected_summary))}，不进卡）</span>` : ''}
+       ${r.n_discarded ? `<span class="rs">，你在草稿上勾掉了 <b>${r.n_discarded}</b> 条（原文照留，以后重抽还能抽到）</span>` : ''}
+       ${r.n_confirm ? `；其中 <b>${r.n_confirm}</b> 条标为「待确认」——系统自己知道哪里不确定` : ''}
+       。<a onclick="jumpFact()">跳到这些事实</a>`;
+  el('receipt').innerHTML = `<span class="close" onclick="S.receipt=null;renderReceipt()">×</span>${head}` +
+    (r.pending_note ? `<div class="pendnote" style="margin-top:6px">⏳ ${esc(r.pending_note)}</div>` : '');
+}
+
+function jumpFact(){
+  if (!S.lastAdded.length) return;
+  const f = S.cur.facts.find(x => S.lastAdded.includes(x.fid));
+  if (f) jump(f.key);
+}
+
+function jump(key){
+  const n = document.getElementById(key);
+  if (!n) return;
+  n.scrollIntoView({behavior:'smooth', block:'center'});
+  n.classList.add('flash');
+  setTimeout(()=>n.classList.remove('flash'), 1400);
+}
+
+function openRec(cid, rid, span){
+  const c = S.customers.find(x => x.id === cid);
+  const r = c.records.find(x => x.id === rid);
+  const fs = c.facts.filter(f => f.rid === rid);
+  el('dtitle').textContent = `${r.type_cn} · ${r.date}`;
+  const body = esc(r.text);
+  const marked = span && body.includes(esc(span)) ? body.replace(esc(span), `<mark>${esc(span)}</mark>`) : body;
+  el('dbody').innerHTML = `
+    <div class="kv">
+      <div class="k">来源类型</div><div>${r.type_cn}</div>
+      <div class="k">事件时间</div><div>${r.date}</div>
+      <div class="k">客户</div><div>${esc(c.name)}</div>
+    </div>
+    <div class="src">${marked}</div>
+    <div class="hint">高亮部分是这条事实的溯源片段。原文没写的东西，系统不会替你补。</div>
+    <h2 class="sec">这条记录抽出的事实</h2>
+    <div class="grid">${fs.map(factCard).join('')}</div>`;
+  el('drawer').classList.add('on');
+  el('mask').classList.add('on');
+}
+function closeRec(){
+  el('drawer').classList.remove('on');
+  el('mask').classList.remove('on');
+}
+
+async function sel(id){
+  const c = S.customers.find(x => x.id === id);
+  if (!c) return;
+  // 从「今天要做的事」点进来时，视图要跟着回到这个客户
+  if (S.view !== 'customer'){ S.view = 'customer'; el('navTodo').classList.remove('on'); }
+  S.cur = c;
+  S.today = S.as_of;
+  S.actDelta = null;
+  // 换客户时清掉上一条「已办」回执：那是上一个客户的事，留在这里只会让人
+  // 以为当前客户也办掉了什么。
+  if (S.doneRec && S.doneRec.view && S.doneRec.view.id !== id) S.doneRec = null;
+  renderDoneBar();
+  // 列表里存的可能已经被上一次拖拽改写过（视图是按某天算出来的），
+  // 切回来必须先按默认基准日重算，否则会看到「10-24 的标题 + 11-06 的事实」。
+  await setDate(S.as_of, true);
+  snapshotBase();
+  renderDelta();
+}
+
+/* ==========================================================================
+   与后端说话
+   ========================================================================== */
+async function api(path, body){
+  const opt = body === undefined ? {} : {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  };
+  let res;
+  try { res = await fetch(path, opt); }
+  catch(e){ throw new Error('连不上本地服务端。是不是 demo/serve.py 已经退出了？'); }
+  let data = null;
+  try { data = await res.json(); } catch(e){}
+  if (!res.ok) throw new Error((data && data.error) || ('服务端返回 ' + res.status));
+  return data;
+}
+
+function setPill(text, kind){
+  const p = el('pill');
+  p.textContent = text;
+  p.className = 'pill ' + (kind || 'ok');
+}
+
+function toast(msg, bad){
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = 'toast on' + (bad ? ' bad' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>{ t.className = 'toast' + (bad ? ' bad' : ''); }, 3200);
+}
+
+// 「重置演示数据」这个按钮，服务端不一定开着（P2-3 起默认关闭）。
+// 画之前先问 health —— 否则用户点下去只会看到一句「没有这个路径：/api/reset」，
+// 而这看上去像是页面坏了，其实是那道闸在正常工作。
+//
+// 不隐藏、只置灰：藏起来会让人以为这个功能被删了。置灰加 title，说清怎么才能用。
+function bindReset(h){
+  const b = el('btnReset');
+  if (!b) return;
+  if (h && h.allow_reset) {
+    b.classList.remove('off'); b.disabled = false; b.title = '';
+  } else {
+    b.classList.add('off'); b.disabled = true;
+    b.title = '重置接口默认关闭。起服务时加 --allow-reset 才能用（一个能让数据消失的接口，默认必须是关的）';
+  }
+}
+
+async function boot(){
+  try {
+    const h = await api('/api/health');
+    S.health = h; S.as_of = h.as_of; S.type_cn = h.type_cn || {}; S.source_cn = h.source_cn || {};
+    if (h.offline) setPill('离线回放 · 只用缓存', 'warn');
+    else setPill('真实模型 · ' + h.model, 'ok');
+    el('brandsub').textContent = `演示版 v0.2 · 数据截至 ${h.as_of}`;
+    el('mouth').textContent = h.offline
+      ? '离线模式：抽取只走缓存，不联网'
+      : `后端已连上：${h.model}`;
+    bindReset(h);
+
+    const d = await api('/api/customers');
+    S.customers = d.customers; S.as_of = d.as_of; S.today = d.as_of;
+    S.type_cn = d.type_cn || S.type_cn;
+    S.cur = S.customers[0] || null;
+    renderList(); render(); refreshFoot();
+    snapshotBase(); renderDelta();
+    loadTodo();
+
+    try {
+      const s = await api('/api/samples');
+      S.samples = s.samples || [];
+    } catch(e){ S.samples = []; }
+    buildPasteForm();
+  } catch(e){
+    setPill('未连接', 'warn');
+    el('mouth').textContent = '连不上服务端';
+    toast(e.message, true);
+    el('panel').innerHTML = `<div class="empty">${esc(e.message)}<br><br>
+      在项目根目录执行 <b>python3 demo/serve.py</b>，然后刷新本页。</div>`;
+  }
+}
+
+function refreshFoot(){
+  const h = S.health || {};
+  const nPool = S.customers.filter(c => c.pool).length;
+  const nFocus = S.customers.length - nPool;
+  el('footinfo').innerHTML = `${S.customers.length} 个客户（重点 ${nFocus} · 存量 ${nPool}） · 缓存 ${h.cache_size || 0} 条`
+    + (h.offline ? ' · 离线' : '');
+}
+
+/* ==========================================================================
+   记一笔
+   ========================================================================== */
+async function handleFileUpload(input){
+  const file = input.files[0];
+  if (!file) return;
+  const fname = file.name;
+  el('pfilename').textContent = fname + ' …';
+  const ext = fname.split('.').pop().toLowerCase();
+
+  if (['txt','md','csv','log'].includes(ext)){
+    // 纯文本直接读，不走服务端
+    const text = await file.text();
+    el('ptext').value = text;
+    el('pfilename').textContent = `${fname} · ${text.length} 字`;
+    return;
+  }
+
+  if (ext === 'docx'){
+    // docx 走服务端提取文本
+    const buf = await file.arrayBuffer();
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    try {
+      const r = await api('/api/upload', {filename: fname, data: b64});
+      el('ptext').value = r.text;
+      el('pfilename').textContent = `${fname} · 提取了 ${r.n_chars} 字`;
+    } catch(e){
+      el('pfilename').textContent = '提取失败：' + e.message;
+    }
+    return;
+  }
+
+  el('pfilename').textContent = `暂不支持 .${ext} 格式，请复制文本粘贴`;
+  input.value = '';
+}
+
+function buildPasteForm(){
+  el('pcust').innerHTML = '<option value="__new__">＋ 新建客户</option>'
+    + S.customers.map(c => `<option value="${c.id}">${esc(c.name)}（${c.records.length} 条记录）</option>`).join('');
+  el('ptype').innerHTML = Object.entries(S.source_cn)
+    .map(([k,v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+  el('pdate').value = S.as_of || '';
+  el('samples').innerHTML = S.samples.map((s,i) => `<button class="sample" data-i="${i}">
+      <b>${esc(s.title)}</b><span>${esc(s.note)}</span></button>`).join('')
+    || '<span class="hint" style="margin:0">没有示例，直接粘一段试试。</span>';
+  el('samples').querySelectorAll('.sample').forEach(b => b.onclick = () => applySample(+b.dataset.i));
+  el('pcust').onchange = () => syncNewName();
+  syncNewName();
+}
+
+function syncNewName(){
+  const isNew = el('pcust').value === '__new__';
+  el('newnameWrap').style.display = isNew ? '' : 'none';
+}
+
+function applySample(i){
+  const s = S.samples[i];
+  if (!s) return;
+  el('ptext').value = s.text;
+  el('pdate').value = s.doc_date;
+  el('ptype').value = s.source_type;
+  el('pcust').value = '__new__';
+  syncNewName();
+  el('pnewname').value = s.customer_name;
+}
+
+function openPaste(){
+  el('mask2').classList.add('on');
+  el('dialog').classList.add('on');
+  // 每次打开都退回「填内容」这一步：上一轮的草稿引用的原文已经不在框里了，
+  // 把它留在面板上，用户面对的是一份没有出处的勾选清单。
+  S.draft = null; S.picked = null;
+  showStep(1);
+  setTimeout(()=>el('ptext').focus(), 60);
+}
+function closePaste(){
+  el('mask2').classList.remove('on');
+  el('dialog').classList.remove('on');
+  el('pprog').innerHTML = '';
+  el('psubmit').disabled = false;
+  el('pcommit').disabled = false;
+  S.draft = null; S.picked = null;
+  showStep(1);
+}
+
+/* 两步走：① 填内容、抽出来看看 → ② 勾选、确认入库。
+   底部按钮跟着换，是因为同一个「提交」按钮在两步里含义不同——
+   第一步是「让我看看能抽出什么」（可撤销），第二步是「写进库」（不可撤销）。
+   一个按钮两种含义，第二次点击时用户会以为还是前者。 */
+function showStep(n){
+  const one = n === 1;
+  el('pform').style.display = one ? '' : 'none';
+  el('pstep2').style.display = one ? 'none' : '';
+  el('psubmit').style.display = one ? '' : 'none';
+  el('pcancel').style.display = one ? '' : 'none';
+  el('pdiscard').style.display = one ? 'none' : '';
+  el('pback').style.display = one ? 'none' : '';
+  el('dsub').textContent = one
+    ? '系统先从这段文本里抽事实，抽完给你看，勾了才入库。走的是和评测同一条管道。'
+    : '下面是抽出来的事实。默认全勾；取消勾选的几条不会进卡，原文照样整段保留。';
+}
+
+/* 草稿面板。一行只放三样东西：类型、陈述、原文片段。
+   字段全不全由校验层负责，摊开会让人不看就全选，这一步就等于没有。 */
+function renderDraft(){
+  const d = S.draft;
+  if (!d) return;
+  if (!d.n_facts){
+    el('dsum').innerHTML = '';
+    el('dlist').innerHTML = `<div class="empty2"><b>这段文本抽不出可用事实</b>${
+      esc(d.empty_hint || '原因未给出。')}</div>`;
+    el('dhint').innerHTML = '';
+    el('pcommit').style.display = 'none';
+    return;
+  }
+  el('pcommit').style.display = '';
+  el('dsum').innerHTML =
+    `<span class="cnt">抽出 ${d.n_facts} 条</span>`
+    + `<span class="tip">已选 <b id="dpickn">${S.picked.size}</b> 条</span>`
+    + `<span style="flex:1"></span>`
+    + `<button class="dall" onclick="pickAll(true)">全选</button>`
+    + `<button class="dall" onclick="pickAll(false)">全不选</button>`;
+  el('dlist').innerHTML = d.facts.map(f => {
+    const on = S.picked.has(f.fact_id);
+    // 「规则判出」这枚小标不是装饰：模型说的是「我读到了什么」，
+    // 规则说的是「原文里就写着变化」。用户的信任成本不一样，
+    // 混在一列里就等于替他把两者当成了一回事。
+    const badge = f.by === 'rule'
+      ? '<span class="tagrule" title="由规则从原文里判出，证据是下面那句原话">规则判出</span>'
+      : '';
+    return `<label class="drow${on ? '' : ' off'}" id="drow-${f.fact_id}">
+      <input type="checkbox"${on ? ' checked' : ''}
+             onchange="togglePick('${f.fact_id}', this.checked)">
+      <span>
+        <div class="dt"><span class="tagt">${esc(f.type_cn || f.fact_type)}</span>${badge}${esc(f.statement)}</div>
+        ${f.span ? `<div class="dspan">「${esc(f.span)}」</div>` : ''}
+        ${f.gist ? `<div class="dgist">${esc(f.gist)}</div>` : ''}
+      </span>
+    </label>`;
+  }).join('');
+
+  const bits = [];
+  if (d.n_rejected) {
+    bits.push(`另有 ${d.n_rejected} 条被校验拒收（${esc(rejectText(d.rejected_summary))}），本来就不会进卡。`);
+  }
+  if (d.n_signals) {
+    bits.push(`其中 ${d.n_signals} 条风险信号是规则从原文里判出来的`
+      + `${d.signal_note ? '：' + esc(d.signal_note) : '。'}`);
+  }
+  if (!S.picked.size) {
+    bits.push('一条都没勾——这时候不必入库，按「整条丢弃」关掉，原文和事实都不会留下任何东西。');
+  } else if (S.picked.size < d.n_facts) {
+    bits.push(`没勾的 ${d.n_facts - S.picked.size} 条会随草稿一起消失，原文里那句话还在，以后重抽还能抽到。`);
+  }
+  el('dhint').innerHTML = bits.join('<br>');
+  el('pcommit').textContent = `确认入库（${S.picked.size} 条）`;
+  el('pcommit').disabled = S.picked.size === 0;
+}
+
+function togglePick(fid, on){
+  const set = new Set(S.picked);
+  if (on) set.add(fid); else set.delete(fid);
+  S.picked = set;
+  renderDraft();
+}
+
+function pickAll(v){
+  S.picked = new Set(v ? (S.draft ? S.draft.facts.map(f => f.fact_id) : []) : []);
+  renderDraft();
+}
+
+function backToPaste(){
+  S.draft = null; S.picked = null;
+  el('pprog').innerHTML = '';
+  showStep(1);
+}
+
+/* 「整条丢弃」是零成本的：不调 /api/commit 就等于什么都没发生。
+   不需要删除接口，也就不存在「删了一半留下孤儿数据」这种状态。 */
+function discardDraft(){
+  const n = S.draft ? S.draft.n_facts : 0;
+  const draftId = S.draft ? S.draft.draft_id : '';
+  S.draft = null; S.picked = null;
+  closePaste();
+  toast(`已丢弃${draftId ? '（' + draftId + '）' : ''}：这段文本没有入库，${n} 条事实一条都没留下。`);
+}
+
+function pasteBody(){
+  const text = el('ptext').value.trim();
+  if (!text){ toast('还没有粘内容。', true); return null; }
+  const target = el('pcust').value;
+  const name = (el('pnewname').value || '').trim();
+  if (target === '__new__' && !name){ toast('给这个新客户起个名字。', true); return null; }
+  const body = {
+    text,
+    doc_date: el('pdate').value || S.as_of,
+    source_type: el('ptype').value || 'visit_note'
+  };
+  if (target === '__new__') body.customer_name = name;
+  else body.customer_id = target;
+  return body;
+}
+
+async function submitPaste(){
+  if (S.busy) return;
+  const body = pasteBody();
+  if (!body) return;
+
+  S.busy = true;
+  el('psubmit').disabled = true;
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    const slow = (Date.now() - t0) > 10000;
+    el('pprog').innerHTML = `<span class="spin"></span>抽取中 ${secs}s${slow ? '（模型还没返回，仍在等）' : ''}`;
+    setPill(`抽取中 ${secs}s`, 'busy');
+  }, 120);
+  el('pprog').innerHTML = '<span class="spin"></span>调用模型中…';
+
+  try {
+    // 只抽不落库：这一趟走完，库里一条都没多。
+    const r = await api('/api/draft', body);
+    S.draft = r;
+    S.picked = new Set((r.facts || []).map(f => f.fact_id));
+    el('pprog').innerHTML = '';
+    showStep(2);
+    renderDraft();
+    setPill(r.n_facts ? `草稿 ${r.draft_id}：抽出 ${r.n_facts} 条，待确认` : '这段文本抽不出事实', 'busy');
+  } catch(e){
+    toast(e.message, true);
+    el('pprog').innerHTML = '';
+    setPill('抽取失败', 'warn');
+  } finally {
+    clearInterval(tick);
+    S.busy = false;
+    el('psubmit').disabled = false;
+  }
+}
+
+async function commitDraft(){
+  if (S.busy || !S.draft) return;
+  const keep = Array.from(S.picked);
+  if (!keep.length){
+    toast('一条都没勾。要么勾几条，要么按「整条丢弃」关掉。', true);
+    return;
+  }
+  const draft = S.draft;
+  S.busy = true;
+  el('pcommit').disabled = true;
+  el('pprog').innerHTML = '<span class="spin"></span>入库并重算认知卡…';
+  try {
+    const r = await api('/api/commit', {draft_id: draft.draft_id, keep});
+    const prev = S.customers.find(c => c.id === r.customer.id);
+    const merged = (prev ? prev.fact_data : []).concat(r.fact_data);
+
+    el('pprog').innerHTML = '<span class="spin"></span>重算认知卡…';
+    const a = await api('/api/analyze', {
+      customer_id: r.customer.id, fact_data: merged, today: S.as_of
+    });
+
+    const cust = Object.assign({}, a.view, { fact_data: merged });
+    const idx = S.customers.findIndex(c => c.id === cust.id);
+    if (idx >= 0) S.customers[idx] = cust; else S.customers.push(cust);
+
+    S.cur = cust;
+    // 入库后回到默认基准日：否则会出现「按 11-06 算出来的事实」配
+    // 「10-24 的基准日标签」，滑块位置和卡片内容对不上。
+    S.today = S.as_of;
+    S.lastAdded = r.fact_data.map(f => f.fact_id);
+    S.tab = 'card';
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === 'card'));
+
+    const srcLabel = r.source === 'live' ? '真实模型' : '离线回放·缓存';
+    S.receipt = {
+      n_facts: r.n_facts,
+      n_rejected: r.n_rejected,
+      n_confirm: cust.facts.filter(f => r.fact_data.some(d => d.fact_id === f.fid) && f.tier !== 'show').length,
+      // 勾掉的条数必须说出来。不说，用户会以为系统只抽出了这么多。
+      n_discarded: r.n_discarded || 0,
+      empty_reason: '',
+      empty_hint: '',
+      secs: ((r.ms) / 1000).toFixed(1),
+      src: srcLabel,
+      model: r.source === 'live' ? (r.model || '') : '',
+      offline: !!r.offline || r.source !== 'live',
+      // 记录日期晚于基准日时，回执当场说清「为什么卡片上看不到」，
+      // 不等用户对着 0 条发懵（实测 2026-10-25：抽出 12 条、卡片 0 条）。
+      pending_note: (r.doc && r.doc.date && r.doc.date > S.as_of)
+        ? `记录日期 ${r.doc.date} 晚于基准日 ${S.as_of}，这条记录连同入库的 ${r.n_facts} 条事实都在「等待录入」里——把基准日调到 ${r.doc.date} 或之后即可看到。`
+        : ''
+    };
+
+    closePaste();
+    S.actDelta = null;
+    snapshotBase();
+    renderList(); render(); renderReceipt(); renderDelta(); refreshFoot();
+    flashNewFacts();
+    setPill(`上次入库：${srcLabel} · ${S.receipt.secs}s`, S.receipt.offline ? 'warn' : 'ok');
+    if (r.note) toast(r.note, true);
+  } catch(e){
+    toast(e.message, true);
+    el('pprog').innerHTML = '';
+    setPill('入库失败', 'warn');
+    el('pcommit').disabled = false;
+  } finally {
+    S.busy = false;
+  }
+}
+
+function flashNewFacts(){
+  if (!S.lastAdded.length) return;
+  const f = S.cur.facts.find(x => S.lastAdded.includes(x.fid));
+  if (!f) return;
+  setTimeout(() => jump(f.key), 120);
+}
+
+/* ==========================================================================
+   绑定
+   ========================================================================== */
+el('mask').onclick = closeRec;
+el('dclose').onclick = closeRec;
+el('mask2').onclick = closePaste;
+el('pclose').onclick = closePaste;
+el('pcancel').onclick = closePaste;
+el('psubmit').onclick = submitPaste;
+el('pcommit').onclick = commitDraft;
+el('pdiscard').onclick = discardDraft;
+el('pback').onclick = backToPaste;
+el('btnPaste').onclick = openPaste;
+el('q').oninput = e => renderList(e.target.value);
+
+/* 基准日：拖动只改标签，停手 60ms 才发请求。
+   analyze 一次不到 1 毫秒，但拖动会连发几十次，没必要。
+   60ms 的另一个好处是「松手前不动」，视觉上不会闪。 */
+el('dtslider').oninput = e => {
+  const d = offsetToDate(+e.target.value);
+  el('dtpicker').value = d;
+  const off = +e.target.value;
+  el('dtlabel').textContent = off === 0 ? `${d}（默认）`
+    : (off > 0 ? `${d}（+${off} 天）` : `${d}（${off} 天）`);
+  clearTimeout(S.pending);
+  S.pending = setTimeout(() => setDate(d), 60);
+};
+el('dtpicker').onchange = e => setDate(e.target.value);
+el('dtreset').onclick = () => setDate(S.as_of);
+
+el('navTodo').onclick = () => {
+  S.view = 'todo';
+  el('navTodo').classList.add('on');
+  document.querySelectorAll('.item').forEach(n => n.classList.remove('on'));
+  loadTodo();
+  render();
+};
+el('btnVisit').onclick = () => openBrief('visit');
+el('btnProposal').onclick = () => openBrief('proposal');
+el('btnHandover').onclick = () => openBrief('handover');
+el('bclose').onclick = closeBrief;
+el('bcopy').onclick = copyBrief;
+el('bmask').onclick = closeBrief;
+
+el('tabs').querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  S.tab = t.dataset.tab;
+  el('tabs').querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  render();
+});
+el('btnReset').onclick = async () => {
+  try {
+    await api('/api/reset', {});
+    S.receipt = null; S.lastAdded = []; S.baseView = null;
+    await boot();
+    renderReceipt();
+    toast('已恢复到初始演示数据');
+  } catch(e){ toast(e.message, true); }
+};
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ closeRec(); closePaste(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && el('dialog').classList.contains('on')){
+    // 第二步的回车是「入库」，第一步是「抽取」。跟着当前这一步走，
+    // 否则在勾选面板上按回车会重新抽一遍，把刚勾的结果冲掉。
+    S.draft ? commitDraft() : submitPaste();
+  }
+});
+
+boot();
+</script>
+</body>
+</html>
