@@ -21,7 +21,8 @@
 ### 1. 先跑起来（不需要任何 API key）
 
 ```bash
-git clone <this-repo> && cd <this-repo>
+git clone https://github.com/liuxinrongjinmu/customer-insight-card.git
+cd customer-insight-card
 python3 demo/serve.py --offline --allow-reset
 ```
 
